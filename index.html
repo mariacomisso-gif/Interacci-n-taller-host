@@ -130,6 +130,39 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
 .panel-der .vid{display:block;width:100%;max-height:26dvh;margin-top:12px;object-fit:contain;background:#1b1410;border:3px solid var(--oro-osc);box-shadow:3px 3px 0 var(--azul-osc)}
 .panel-der .vid[hidden]{display:none}
 @media(max-width:600px){.panel-der .texto{max-height:30vh}.panel-der.con-video .texto{max-height:20vh}.panel-der .vid{max-height:20vh}}
+/* ---------- PANELES COMPACTOS (iPad / tablet y escritorio) ---------- */
+@media(min-width:601px){
+.panel{top:14px;left:14px;width:min(264px,calc(100vw - 28px));max-height:calc(100dvh - 120px);padding:8px}
+.cristal{padding:22px 14px 18px}
+.panel h1{margin-bottom:8px;font-size:21px;text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro-osc)}
+.intro{font-size:12px;line-height:1.45}
+.placa{margin:12px 0 10px;padding:9px 10px 11px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.28),4px 4px 0 var(--azul-osc)}
+#contador{font-size:9px;letter-spacing:2px}
+#tituloCapa{margin-top:4px;font-size:19px;text-shadow:1px 1px 0 #c9c1a6,2px 2px 0 #0e2d54,3px 3px 0 #0e2d54}
+#descripcion{min-height:52px;font-size:12.5px;line-height:1.45}
+.progreso{height:12px;margin:12px 0 4px;box-shadow:2px 2px 0 var(--amarillo)}
+.panel button{margin-top:10px;padding:9px 8px;font-size:11px;letter-spacing:.3px;box-shadow:4px 4px 0 var(--amarillo)}
+.panel button.terciario{margin-top:10px;padding:7px;font-size:11px;box-shadow:none}
+.panel-der{top:14px;right:14px;width:176px;padding:6px}
+.panel-der.abierto{width:clamp(220px,calc(100vw - 308px),280px)}
+.panel-der .tab{gap:8px;padding:7px 9px;font-size:11px;box-shadow:2px 2px 0 var(--azul-osc)}
+.panel-der .txt{font-size:10.5px}
+.panel-der .ico{width:20px;height:20px;font-size:12px}
+.panel-der .mas{font-size:18px}
+.panel-der .cristal{margin-top:8px}
+.panel-der .kicker{font-size:9px;letter-spacing:2px}
+.panel-der h2{margin-bottom:8px;font-size:16px}
+.panel-der h2::after{width:44px;margin-top:6px}
+#infoTexto p{margin-bottom:7px;font-size:12px;line-height:1.5}
+.panel-der .texto{max-height:max(110px,calc(100dvh - 310px))}
+.panel-der.con-video .texto{max-height:max(100px,calc(100dvh - 540px))}
+.panel-der .vid{max-height:22dvh;margin-top:8px}
+.barra{bottom:max(10px,env(safe-area-inset-bottom,0px));width:min(640px,calc(100vw - 28px));padding:6px}
+.barra .fila{gap:8px;padding:8px}
+.barra button{flex:1 1 120px;padding:9px 8px;font-size:11px;letter-spacing:.3px;box-shadow:3px 3px 0 var(--azul-osc)}
+.barra button.rojo{box-shadow:3px 3px 0 var(--amarillo)}
+}
+.barra button:disabled{cursor:default;filter:grayscale(.7);opacity:.55;transform:none;box-shadow:1px 1px 0 var(--azul-osc)}
 </style>
 </head>
 <body>
@@ -180,7 +213,7 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
   <div class="fila">
     <button id="voltear" type="button">Ver el frente</button>
     <button id="separar" type="button">Separar capas 3D</button>
-    <button id="centrar" type="button">Centrar vista</button>
+    <button id="deshacer" type="button" disabled>↶ Deshacer capa</button>
     <button id="reiniciar" type="button" class="rojo">Volver a comenzar</button>
   </div>
 </nav>
@@ -304,7 +337,7 @@ const carteles = [
       { nombre: "Blancos", parrafos: ["El blanco cubre el interior de las letras y sirve de base luminosa para los detalles. Al mirar la obra desde el frente queda por delante de la pintura, por eso se aplica antes que ella."] },
       { nombre: "Pintura", parrafos: ["La pintura rosada dibuja la sombra de las letras, aporta profundidad y las separa del fondo. Al trabajar por el reverso, se ve a través del vidrio y por detrás de los blancos."] },
       null],
-    videos: { 1: 'video 1-1.mp4', 4: 'video 4-1.mp4' },    // Diseño de respaldo (se usa solo si los SVG no cargan)
+    videos: { 2: 'video 1-1.mp4', 4: 'video 4-1.mp4' },    // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [
       { t: "c", x: 680, y: 280, r: 100, f: "#e8cf84" },
       ...petalos(320, 420, 7, 50, 30, 16, ["#bd3a2b", "#e67e22"]),
@@ -519,7 +552,7 @@ const botonVoltear = document.getElementById("voltear");
 const botonSeparar = document.getElementById("separar");
 const botonReiniciar = document.getElementById("reiniciar");
 const botonCarteles = document.getElementById("carteles");
-const botonCentrar = document.getElementById("centrar");
+const botonDeshacer = document.getElementById("deshacer");
 
 // Viñeta derecha: pequeña al inicio, se expande y se contrae al tocarla
 const infoDer = document.getElementById("infoDer");
@@ -553,8 +586,8 @@ const infoCapas = [
     'En ciertas variantes de verre églomisé, el fondo también cumple una función protectora: ayuda a resguardar la hoja metálica y a mantener el efecto visual.'
   ] }
 ];
-// Videos sin sonido, en la misma carpeta que el html. Capas: 0 vidrio, 1 oro, 2 contornos, 3 pinturas, 4 fondo
-const videosCapa = { 1: 'video 1-1.mp4', 4: 'video 4-1.mp4' };let defs = definiciones, infos = infoCapas, vids = videosCapa;
+// Videos sin sonido, en la misma carpeta que el html. Capas (empiezan en 0): 0 vidrio, 1 oro, 2 contornos/blancos (etapa 3), 3 pinturas, 4 fondo
+const videosCapa = { 2: 'video 1-1.mp4', 4: 'video 4-1.mp4' };let defs = definiciones, infos = infoCapas, vids = videosCapa;
 const infoVideo = document.createElement('video');
 infoVideo.className = 'vid';
 infoVideo.muted = true; infoVideo.defaultMuted = true; infoVideo.loop = true; infoVideo.playsInline = true;
@@ -602,6 +635,7 @@ function actualizarInterfaz() {
   descripcion.textContent = actual.descripcion;
   barra.style.width = `${((paso + 1) / defs.length) * 100}%`;
   botonSiguiente.disabled = paso === defs.length - 1;
+  botonDeshacer.disabled = paso === 0;
   botonSiguiente.textContent = paso === defs.length - 1 ? "Obra completada ✓" : "Incorporar siguiente capa →";
   pintarInfo();
 }
@@ -652,6 +686,10 @@ botonSeparar.addEventListener("click", () => {
   capasSeparadas = !capasSeparadas;
   botonSeparar.textContent = capasSeparadas ? "Juntar capas 3D" : "Separar capas 3D";
 });
+// Deshacer: quita la última capa incorporada (vuelve a la etapa anterior)
+botonDeshacer.addEventListener("click", () => {
+  if (paso > 0) { capas[paso].visible = false; paso--; actualizarInterfaz(); }
+});
 botonReiniciar.addEventListener("click", reiniciar);
 
 // Doble toque / doble clic sobre la obra: vuelve a empezar desde la capa del vidrio
@@ -675,9 +713,8 @@ lienzoObra.addEventListener("pointerup", e => {
   }
 });
 
-// Centrar: vuelve suavemente a la vista frontal, a la distancia inicial, mirando al centro de la obra
+// Vuelve suavemente a la vista frontal, a la distancia inicial, mirando al centro de la obra (se usa al girar la obra)
 const esf = new THREE.Spherical(), vec = new THREE.Vector3();
-botonCentrar.addEventListener("click", () => { girarA(false); centrando = true; });
 function pasoCentrar() {
   controles.target.set(0, 0, 0);
   esf.setFromVector3(vec.copy(camara.position));
