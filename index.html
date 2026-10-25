@@ -155,8 +155,13 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
 .panel-der h2::after{width:44px;margin-top:6px}
 #infoTexto p{margin-bottom:7px;font-size:12px;line-height:1.5}
 .panel-der .texto{max-height:max(110px,calc(100dvh - 310px))}
-.panel-der.con-video .texto{max-height:max(100px,calc(100dvh - 540px))}
+.panel-der.con-video.abierto{width:clamp(250px,calc(100vw - 308px),330px)}
+.panel-der.con-video .cristal{padding:24px 18px 20px}
+.panel-der.con-video h2{font-size:18px}
+.panel-der.con-video #infoTexto p{font-size:13px;line-height:1.55}
+.panel-der.con-video .texto{max-height:max(160px,calc(100dvh - 410px))}
 .panel-der .vid{max-height:22dvh;margin-top:8px}
+.panel-der.con-video .vid{max-height:28dvh;margin-top:12px}
 .barra{bottom:max(10px,env(safe-area-inset-bottom,0px));width:min(640px,calc(100vw - 28px));padding:6px}
 .barra .fila{gap:8px;padding:8px}
 .barra button{flex:1 1 120px;padding:9px 8px;font-size:11px;letter-spacing:.3px;box-shadow:3px 3px 0 var(--azul-osc)}
