@@ -387,9 +387,9 @@ const carteles = [
       null],
     info: [null, null,
       { nombre: "Blancos", parrafos: ["El blanco cubre el interior de las letras y sirve de base luminosa para los detalles. Al mirar la obra desde el frente queda por delante de la pintura, por eso se aplica antes que ella."] },
-      { nombre: "Pintura", parrafos: ["La pintura rosada dibuja la sombra de las letras, aporta profundidad y las separa del fondo. Al trabajar por el reverso, se ve a través del vidrio y por detrás de los blancos."] },
+      null, // la pintura usa el texto común (infoCapas[3])
       null],
-    videos: { 1: 'oro.mp4', 4: 'fondo.mp4' }, // el video de contorno ya no aplica a este cartel
+    videos: { 1: 'oro.mp4', 3: 'pintura.mp4', 4: 'fondo.mp4' }, // el video de contorno ya no aplica a este cartel
     // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [
       { t: "c", x: 680, y: 280, r: 100, f: "#e8cf84" },
@@ -418,8 +418,6 @@ const carteles = [
     orden: ["vidrio", "oro", "blancos", "contornos", "pintura", "fondo"],
     // Capas (por posición en "svg", con el vidrio = 0) que aparecen en cada etapa: rojo (4) y verdes (5) entran juntos en la pintura, pero siguen siendo planos distintos al separar las capas 3D
     etapas: [[0], [1], [2], [3], [4, 5], [6]],
-    // Video propio de una sección solo para este cartel (la pintura de este cartel tiene su video)
-    videosSeccion: { pintura: "pintura.mp4" },
     // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [
       { t: "c", x: 512, y: 470, r: 150, a0: P, a1: 2 * P, f: "#d9472b" },
@@ -867,7 +865,7 @@ const infoCapas = [
   ] }
 ];
 // Videos sin sonido, en la misma carpeta que el html. Capas: 0 vidrio, 1 oro, 2 contornos, 3 pinturas, 4 fondo
-const videosCapa = { 1: 'oro.mp4', 2: 'contorno.mp4', 4: 'fondo.mp4' };
+const videosCapa = { 1: 'oro.mp4', 2: 'contorno.mp4', 3: 'pintura.mp4', 4: 'fondo.mp4' };
 
 // Secciones reutilizables: un cartel con "orden" arma sus pasos a partir de estas secciones
 const SECCIONES = {
@@ -878,12 +876,12 @@ const SECCIONES = {
     info: { nombre: "Blancos", parrafos: ["El blanco cubre las zonas que necesitan una base luminosa para los detalles. Al mirar la obra desde el frente queda por delante de la pintura, por eso se aplica antes que ella."] }
   },
   contornos: { def: definiciones[2], info: infoCapas[2], video: 'contorno.mp4' },
-  pintura: { def: definiciones[3], info: infoCapas[3] },
+  pintura: { def: definiciones[3], info: infoCapas[3], video: 'pintura.mp4' },
   fondo: { def: definiciones[4], info: infoCapas[4], video: 'fondo.mp4' },
   // Secciones del cartel de El Cachafaz (el rojo va por delante del blanco, por eso se aplica antes)
   rojo: {
     def: { nombre: "La pintura", descripcion: "La pintura roja cubre la parte superior de las letras. Queda por delante del blanco, por eso se aplica antes que él." },
-    info: { nombre: "Pintura", parrafos: ["La pintura roja se aplica por el reverso del vidrio sobre la parte superior de las letras. Al mirar la obra desde el frente queda por delante del blanco, por eso se pinta antes que él."] }
+    info: infoCapas[3], video: 'pintura.mp4' // mismo texto y video que toda la pintura
   },
   // Pertenece a los blancos: el blanco completa las letras por detrás del rojo
   letras: {
@@ -893,9 +891,7 @@ const SECCIONES = {
   // Sección del cartel de El Bar de Julio: los detalles pertenecen a la pintura
   detalles: {
     def: { nombre: "La pintura", descripcion: "Los detalles en pintura se aplican primero. Al mirar la obra desde el frente quedan por delante del oro." },
-    info: { nombre: "Pintura", parrafos: [
-      "En el églomisé se trabaja por el reverso del vidrio, así que lo que se ve primero desde el frente se pinta primero. Por eso los detalles en pintura son lo primero que se aplica: al mirar la obra de frente quedan por delante del oro."
-    ] }
+    info: infoCapas[3], video: 'pintura.mp4' // mismo texto y video que toda la pintura
   }
 };
 // Reparte los planos según las capas del cartel elegido (juntos y separados, siempre centrados)
