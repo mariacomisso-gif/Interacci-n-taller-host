@@ -210,6 +210,7 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
     <div id="descripcion">Soporte transparente. Se trabaja por detrás partiendo en modo espejo.</div>
     <div class="progreso"><div id="barra"></div></div>
     <button id="siguiente">Incorporar siguiente capa →</button>
+    <button id="deshacer" type="button" class="secundario" disabled>↶ Deshacer capa</button>
     <button id="carteles" class="terciario">← Elegir otro cartel</button>
   </div>
 </section>
@@ -223,7 +224,6 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
     <div class="interior">
       <div class="cristal">
         <div class="texto">
-          <p class="kicker" id="infoKicker"></p>
           <h2 id="infoTitulo"></h2>
           <div id="infoTexto"></div>
           
@@ -239,7 +239,6 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
   <div class="fila">
     <button id="voltear" type="button">Ver el frente</button>
     <button id="separar" type="button">Separar capas 3D</button>
-    <button id="deshacer" type="button" disabled>↶ Deshacer capa</button>
     <button id="reiniciar" type="button" class="rojo">Volver a comenzar</button>
   </div>
 </nav>
@@ -671,6 +670,7 @@ const cerrarInfo = () => galeria.querySelectorAll(".cartel.activo").forEach(x =>
 inicio.addEventListener("click", e => { if (!e.target.closest(".cartel")) cerrarInfo(); });
 await Promise.all([cargarSvgs(carteles[0]), cargarSvgs(carteles[1]), cargarSvgs(carteles[2])]);
 galeria.textContent = "";
+const minis = [];
 carteles.forEach((c, i) => {
   c.tx = c.tx || capasDe(c);
   let mini;
@@ -682,6 +682,12 @@ carteles.forEach((c, i) => {
     c.tx = capasDe(c);
     mini = miniatura(c.tx);
   }
+  minis[i] = mini;
+});
+
+// Cada cartel se puede crear de nuevo para repetir el último antes del primero y el primero después del último (carrusel en bucle)
+const hacerCartel = (i, clon = false) => {
+  const c = carteles[i], mini = minis[i];
   const el = document.createElement("article");
   el.className = "cartel";
   el.tabIndex = 0;
@@ -697,44 +703,69 @@ carteles.forEach((c, i) => {
     if (!abierto) el.classList.add("activo");
   });
   el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(i); } });
-  galeria.appendChild(el);
-});
+  if (clon) { el.dataset.clon = "1"; el.setAttribute("aria-hidden", "true"); el.tabIndex = -1; }
+  return el;
+};
+carteles.forEach((c, i) => galeria.appendChild(hacerCartel(i)));
+galeria.prepend(hacerCartel(carteles.length - 1, true));
+galeria.appendChild(hacerCartel(0, true));
 
 // ---------- Carrusel: un cartel a la vez ----------
 const prevCartel = document.getElementById("prevCartel");
 const nextCartel = document.getElementById("nextCartel");
 const puntos = document.getElementById("puntos");
 let cartelActual = 0;
-const irA = i => {
-  i = (i + carteles.length) % carteles.length; // circular: después del último vuelve al primero (y al revés)
-  galeria.children[i].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+const N = carteles.length;
+// hijos de la galería: [copia del último, cartel 1 … cartel N, copia del primero]
+const irA = (i, suave = true) => {
+  i = Math.max(-1, Math.min(N, i)); // -1 = copia del último (antes del primero), N = copia del primero (después del último)
+  galeria.children[i + 1].scrollIntoView({ behavior: suave ? "smooth" : "auto", inline: "center", block: "nearest" });
 };
 carteles.forEach((c, i) => {
   const b = document.createElement("button");
   b.type = "button"; b.className = "punto";
   b.setAttribute("aria-label", `Ir al cartel ${i + 1}`);
-  b.addEventListener("click", () => irA(i));
+  b.addEventListener("click", () => { normalizar(); irA(i); });
   puntos.appendChild(b);
 });
-function marcarCartel() {
+function hijoCentral() {
   const centro = galeria.scrollLeft + galeria.clientWidth / 2;
   let mejor = 0, dist = Infinity;
   [...galeria.children].forEach((el, k) => {
     const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - centro);
     if (d < dist) { dist = d; mejor = k; }
   });
+  return mejor;
+}
+// Si se está sobre una copia (extremos), salta sin que se note al cartel real equivalente
+function normalizar() {
+  const m = hijoCentral(), h = galeria.children;
+  let delta = 0;
+  if (m === N + 1) delta = h[1].offsetLeft - h[N + 1].offsetLeft;
+  else if (m === 0) delta = h[N].offsetLeft - h[0].offsetLeft;
+  if (!delta) return;
+  galeria.style.scrollSnapType = "none";
+  galeria.scrollLeft += delta;
+  requestAnimationFrame(() => { galeria.style.scrollSnapType = ""; });
+}
+let temporizadorBucle = 0;
+function marcarCartel() {
+  const mejor = (hijoCentral() - 1 + N) % N; // índice real del cartel (las copias cuentan como su original)
   if (mejor !== cartelActual) cerrarInfo(); // al cambiar de cartel se cierra la info abierta
   cartelActual = mejor;
   [...puntos.children].forEach((p, k) => p.classList.toggle("on", k === mejor));
+  clearTimeout(temporizadorBucle);
+  temporizadorBucle = setTimeout(normalizar, 150); // al terminar de deslizar sobre una copia, vuelve al original
 }
 galeria.addEventListener("scroll", marcarCartel, { passive: true });
-prevCartel.addEventListener("click", () => irA(cartelActual - 1));
-nextCartel.addEventListener("click", () => irA(cartelActual + 1));
+prevCartel.addEventListener("click", () => { normalizar(); irA(cartelActual - 1); });
+nextCartel.addEventListener("click", () => { normalizar(); irA(cartelActual + 1); });
 document.addEventListener("keydown", e => {
   if (inicio.classList.contains("oculto")) return;
-  if (e.key === "ArrowLeft") irA(cartelActual - 1);
-  if (e.key === "ArrowRight") irA(cartelActual + 1);
+  if (e.key === "ArrowLeft") { normalizar(); irA(cartelActual - 1); }
+  if (e.key === "ArrowRight") { normalizar(); irA(cartelActual + 1); }
 });
+irA(0, false); // empieza en el primer cartel real
 marcarCartel();
 
 const definiciones = [
@@ -782,7 +813,6 @@ const infoDer = document.getElementById("infoDer");
 const infoTab = document.getElementById("infoTab");
 
 // Texto de la viñeta derecha según la capa actual (mismo orden que las capas de la obra)
-const infoKicker = document.getElementById("infoKicker");
 const infoTitulo = document.getElementById("infoTitulo");
 const infoTexto = document.getElementById("infoTexto");
 const infoCapas = [
@@ -854,7 +884,6 @@ function reproducirVideo(abierta) {
 }
 function pintarInfo() {
   const d = infos[paso];
-  infoKicker.textContent = `Capa ${paso + 1} de ${infos.length}`;
   infoTitulo.textContent = d.nombre;
   infoTexto.replaceChildren(...d.parrafos.map(t => { const p = document.createElement('p'); p.textContent = t; return p; }));
   infoDer.querySelector('.texto').scrollTop = 0;
