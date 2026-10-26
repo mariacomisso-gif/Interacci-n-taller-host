@@ -141,6 +141,49 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
 .panel-der .vid{display:block;width:100%;max-height:26dvh;margin-top:12px;object-fit:contain;background:#1b1410;border:3px solid var(--oro-osc);box-shadow:3px 3px 0 var(--azul-osc)}
 .panel-der .vid[hidden]{display:none}
 @media(max-width:600px){.panel-der .texto{max-height:30vh}.panel-der.con-video .texto{max-height:20vh}.panel-der .vid{max-height:20vh}}
+.barra button:disabled{cursor:default;filter:grayscale(.7);opacity:.55;transform:none;box-shadow:1px 1px 0 var(--azul-osc)}
+/* ---------- PANELES COMPACTOS (iPad / tablet y escritorio) ---------- */
+@media(min-width:601px){
+.panel{top:14px;left:14px;width:min(264px,calc(100vw - 28px));max-height:calc(100dvh - 120px);padding:8px}
+.cristal{padding:22px 14px 18px}
+.panel h1{margin-bottom:8px;font-size:21px;text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro-osc)}
+.intro{font-size:12px;line-height:1.45}
+.placa{margin:12px 0 8px}
+#contador{font-size:9px;letter-spacing:2px}
+#tituloCapa{margin-top:4px;font-size:19px}
+#descripcion{min-height:52px;font-size:12.5px;line-height:1.45}
+.progreso{height:12px;margin:12px 0 4px;box-shadow:2px 2px 0 var(--amarillo)}
+.panel button{margin-top:10px;padding:9px 8px;font-size:11px;letter-spacing:.3px;box-shadow:4px 4px 0 var(--amarillo)}
+.panel button.terciario{margin-top:10px;padding:7px;font-size:11px;box-shadow:none}
+.panel-der{top:14px;right:14px;width:176px;padding:6px}
+.panel-der.abierto{width:clamp(220px,calc(100vw - 308px),280px)}
+.panel-der .tab{gap:8px;padding:7px 9px;font-size:11px;box-shadow:2px 2px 0 var(--azul-osc)}
+.panel-der .txt{font-size:10.5px}
+.panel-der .ico{width:20px;height:20px;font-size:12px}
+.panel-der .mas{font-size:18px}
+.panel-der .cristal{margin-top:8px}
+.panel-der .kicker{font-size:9px;letter-spacing:2px}
+.panel-der h2{margin-bottom:8px;font-size:16px}
+.panel-der h2::after{width:44px;margin-top:6px}
+#infoTexto p{margin-bottom:7px;font-size:12px;line-height:1.5}
+.panel-der .texto{max-height:max(110px,calc(100dvh - 310px))}
+.panel-der.con-video.abierto{width:clamp(250px,calc(100vw - 308px),330px)}
+.panel-der.con-video .cristal{padding:24px 18px 20px}
+.panel-der.con-video h2{font-size:18px}
+.panel-der.con-video #infoTexto p{font-size:13px;line-height:1.55}
+.panel-der.con-video .texto{max-height:max(160px,calc(100dvh - 410px))}
+.panel-der .vid{max-height:22dvh;margin-top:8px}
+.panel-der.con-video .vid{max-height:28dvh;margin-top:12px}
+.barra{bottom:max(10px,env(safe-area-inset-bottom,0px));width:min(640px,calc(100vw - 28px));padding:6px}
+.barra .fila{gap:8px;padding:8px}
+.barra button{flex:1 1 120px;padding:9px 8px;font-size:11px;letter-spacing:.3px;box-shadow:3px 3px 0 var(--azul-osc)}
+.barra button.rojo{box-shadow:3px 3px 0 var(--amarillo)}
+}
+.barra button:disabled{cursor:default;filter:grayscale(.7);opacity:.55;transform:none;box-shadow:1px 1px 0 var(--azul-osc)}
+/* Capa y título: solo texto (sin fondo, borde ni sombra de botón) */
+.placa{padding:0;background:none;border:0;box-shadow:none}
+#contador{color:var(--azul);text-shadow:none}
+#tituloCapa{color:var(--rojo);text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro)}
 </style>
 </head>
 <body>
@@ -161,7 +204,7 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
 <!-- PANTALLA PRINCIPAL -->
 <section class="panel" id="panel" hidden>
   <div class="cristal">
-    <h1>El reverso de la imagen</h1>
+    <h1>Oro en proceso</h1>
     <p class="intro">En la técnica eglomizada se trabaja por detrás del vidrio de forma invertida.</p>
     <div class="placa"><div id="contador">Capa 1 de 5</div><div id="tituloCapa">El vidrio</div></div>
     <div id="descripcion">Soporte transparente. Se trabaja por detrás partiendo en modo espejo.</div>
@@ -196,7 +239,7 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
   <div class="fila">
     <button id="voltear" type="button">Ver el frente</button>
     <button id="separar" type="button">Separar capas 3D</button>
-    <button id="centrar" type="button">Centrar vista</button>
+    <button id="deshacer" type="button" disabled>↶ Deshacer capa</button>
     <button id="reiniciar" type="button" class="rojo">Volver a comenzar</button>
   </div>
 </nav>
@@ -254,9 +297,9 @@ contenedor.appendChild(renderizador.domElement);
 const controles = new OrbitControls(camara, renderizador.domElement);
 controles.enableDamping = true;
 controles.dampingFactor = 0.06;
-controles.minDistance = 5;
-controles.maxDistance = 14;
-controles.enablePan = true; // dos dedos (o clic derecho) mueven el cartel; "Centrar vista" o doble toque lo devuelven al centro
+controles.minDistance = 2.5;
+controles.maxDistance = 20;
+controles.enablePan = true; // dos dedos (o clic derecho) mueven el cartel; el doble toque (o doble clic) o "Ver el frente/reverso" lo devuelven al centro
 controles.screenSpacePanning = true;
 controles.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }; // un dedo gira, dos dedos mueven y hacen zoom
 controles.target.set(0, 0, 0);
@@ -359,7 +402,9 @@ const carteles = [
     svg: ["oro2.svg", "blancos2.svg", "rojo.svg", "contorno2.svg", "verdes.svg", "fondo2.svg"],
     solido: ["oro2.svg"], // el oro se muestra 100% opaco (se quitan opacidades y mezclas del SVG)
     // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
-    orden: ["vidrio", "oro", "blancos", "pintura", "contornos", "fondo", "pintura"],
+    orden: ["vidrio", "oro", "blancos", "pintura", "contornos", "fondo"],
+    // Capas (por posición en "svg", con el vidrio = 0) que aparecen en cada etapa: rojo (3) y verdes (5) entran juntos en la pintura, pero siguen siendo planos distintos al separar las capas 3D
+    etapas: [[0], [1], [2], [3, 5], [4], [6]],
     // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [
       { t: "c", x: 512, y: 470, r: 150, a0: P, a1: 2 * P, f: "#d9472b" },
@@ -661,7 +706,7 @@ const nextCartel = document.getElementById("nextCartel");
 const puntos = document.getElementById("puntos");
 let cartelActual = 0;
 const irA = i => {
-  i = Math.max(0, Math.min(carteles.length - 1, i));
+  i = (i + carteles.length) % carteles.length; // circular: después del último vuelve al primero (y al revés)
   galeria.children[i].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
 };
 carteles.forEach((c, i) => {
@@ -681,8 +726,6 @@ function marcarCartel() {
   if (mejor !== cartelActual) cerrarInfo(); // al cambiar de cartel se cierra la info abierta
   cartelActual = mejor;
   [...puntos.children].forEach((p, k) => p.classList.toggle("on", k === mejor));
-  prevCartel.disabled = mejor === 0;
-  nextCartel.disabled = mejor === carteles.length - 1;
 }
 galeria.addEventListener("scroll", marcarCartel, { passive: true });
 prevCartel.addEventListener("click", () => irA(cartelActual - 1));
@@ -720,6 +763,7 @@ Array.from({ length: MAX_CAPAS }, (_, i) => i).forEach(i => {
   capas.push(plano);
 });
 
+let etapas = [[0], [1], [2], [3], [4]]; // capas que entran en cada etapa
 let nCapas = 5, paso = 0, capasSeparadas = false, anguloObjetivo = Math.PI, reverso = true;
 
 const contador = document.getElementById("contador");
@@ -731,7 +775,7 @@ const botonVoltear = document.getElementById("voltear");
 const botonSeparar = document.getElementById("separar");
 const botonReiniciar = document.getElementById("reiniciar");
 const botonCarteles = document.getElementById("carteles");
-const botonCentrar = document.getElementById("centrar");
+const botonDeshacer = document.getElementById("deshacer");
 
 // Viñeta derecha: pequeña al inicio, se expande y se contrae al tocarla
 const infoDer = document.getElementById("infoDer");
@@ -840,14 +884,22 @@ function actualizarInterfaz() {
   descripcion.textContent = actual.descripcion;
   barra.style.width = `${((paso + 1) / defs.length) * 100}%`;
   botonSiguiente.disabled = paso === defs.length - 1;
+  botonDeshacer.disabled = paso === 0;
   botonSiguiente.textContent = paso === defs.length - 1 ? "Obra completada ✓" : "Incorporar siguiente capa →";
   pintarInfo();
+}
+
+// Muestra las capas de todas las etapas hasta la actual (una etapa puede traer varias capas)
+function mostrarCapas() {
+  const vistas = new Set(etapas.slice(0, paso + 1).flat());
+  capas.forEach((capa, i) => { capa.visible = vistas.has(i); });
 }
 
 function reiniciar() {
   paso = 0; capasSeparadas = false; anguloObjetivo = Math.PI; reverso = true; botonVoltear.textContent = "Ver el frente";
   grupoObra.rotation.y = Math.PI;
-  capas.forEach((capa, i) => { capa.visible = i === 0; capa.position.z = capa.userData.zJunta; });
+  capas.forEach(capa => { capa.position.z = capa.userData.zJunta; });
+  mostrarCapas();
   botonSeparar.textContent = "Separar capas 3D";
   actualizarInterfaz();
   camara.position.set(0, 0, DIST);
@@ -857,6 +909,8 @@ function reiniciar() {
 
 function elegir(i) {
   const c = carteles[i];
+  const nPlanos = c.tx.length;
+  etapas = (c.orden && c.svg && c.etapas) ? c.etapas : Array.from({ length: nPlanos }, (_, k) => [k]);
   if (c.orden && c.svg) {
     defs = c.orden.map(k => SECCIONES[k].def);
     infos = c.orden.map(k => SECCIONES[k].info);
@@ -890,7 +944,7 @@ botonCarteles.addEventListener("click", () => {
   inicio.classList.remove("oculto");
 });
 botonSiguiente.addEventListener("click", () => {
-  if (paso < defs.length - 1) { paso++; capas[paso].visible = true; actualizarInterfaz(); }
+  if (paso < defs.length - 1) { paso++; mostrarCapas(); actualizarInterfaz(); }
 });
 // Gira la obra al frente (rev=false) o al reverso (rev=true) por el camino más corto
 function girarA(rev) {
@@ -904,9 +958,13 @@ botonSeparar.addEventListener("click", () => {
   capasSeparadas = !capasSeparadas;
   botonSeparar.textContent = capasSeparadas ? "Juntar capas 3D" : "Separar capas 3D";
 });
+// Deshacer: quita la última capa incorporada (vuelve a la etapa anterior)
+botonDeshacer.addEventListener("click", () => {
+  if (paso > 0) { paso--; mostrarCapas(); actualizarInterfaz(); }
+});
 botonReiniciar.addEventListener("click", reiniciar);
 
-// Doble toque / doble clic sobre la obra: centra el cartel (igual que "Centrar vista")
+// Doble toque / doble clic sobre la obra: centra el cartel (sin girarlo ni reiniciar nada)
 let tapInicio = null, ultimoTap = null;
 const activos = new Set(); // punteros apoyados: con dos dedos no cuenta como toque
 const lienzoObra = renderizador.domElement;
@@ -926,15 +984,14 @@ lienzoObra.addEventListener("pointerup", e => {
   if (movio || largo) { ultimoTap = null; return; } // fue un arrastre, no un toque
   if (ultimoTap && ahora - ultimoTap.t < 350 && Math.hypot(e.clientX - ultimoTap.x, e.clientY - ultimoTap.y) < 30) {
     ultimoTap = null;
-    girarA(false); centrando = true;
+    centrando = true; // solo centra y acerca/aleja a la distancia inicial; no cambia el lado que se está viendo
   } else {
     ultimoTap = { x: e.clientX, y: e.clientY, t: ahora };
   }
 });
 
-// Centrar: vuelve suavemente a la vista frontal, a la distancia inicial, mirando al centro de la obra
+// Centrado: vuelve suavemente a la vista frontal, a la distancia inicial, mirando al centro de la obra
 const esf = new THREE.Spherical(), vec = new THREE.Vector3();
-botonCentrar.addEventListener("click", () => { girarA(false); centrando = true; });
 function pasoCentrar() {
   controles.target.multiplyScalar(0.88); // vuelve el cartel al centro de la pantalla
   esf.setFromVector3(vec.copy(camara.position).sub(controles.target));
@@ -961,7 +1018,7 @@ actualizarInterfaz();
 renderizador.setAnimationLoop(() => {
   // Con la obra completa y acoplada, el vidrio se desvanece para que solo se vea la ilustración
   const matVidrio = capas[0].material;
-  const ocultarVidrio = paso === nCapas - 1 && !capasSeparadas;
+  const ocultarVidrio = paso === defs.length - 1 && !capasSeparadas;
   matVidrio.opacity += ((ocultarVidrio ? 0 : 1) - matVidrio.opacity) * 0.08;
   capas[0].visible = matVidrio.opacity > 0.01;
   capas.forEach(capa => {
@@ -975,8 +1032,8 @@ renderizador.setAnimationLoop(() => {
   grupoObra.rotation.y += (anguloObjetivo - grupoObra.rotation.y) * 0.08;
   if (centrando) pasoCentrar();
   controles.update();
-  if (controles.target.length() > 4) { // límite del movimiento: el cartel no se puede sacar de la pantalla
-    const ajuste = controles.target.clone().setLength(4).sub(controles.target);
+  if (controles.target.length() > 7) { // límite del movimiento: el cartel no se puede sacar de la pantalla
+    const ajuste = controles.target.clone().setLength(7).sub(controles.target);
     controles.target.add(ajuste); camara.position.add(ajuste);
   }
   renderizador.render(escena, camara);
