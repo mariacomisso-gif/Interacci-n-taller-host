@@ -432,6 +432,18 @@ const carteles = [
       { t: "l", pts: [[100, 470], [924, 470]] },
       { txt: "AMANECER", x: 512, y: 180, font: "60px Rye", al: "center" }
     ] },
+  { titulo: "El Cachafaz Tangoteatro",
+    texto: "Cartel de El Cachafaz Tangoteatro, con ornamentos dorados, letras rojas y blancas sobre un fondo oscuro.",
+    fondo: "#383739",
+    // Los cinco SVG comparten lienzo (una hoja A4) pero el diseño ocupa solo una franja: se recorta a [x, y, ancho, alto] para que llene el vidrio
+    recorte: [47.66, 214.79, 1113.19, 371.74],
+    // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
+    svg: ["orocar.svg", "letracar2.svg", "letrcar.svg", "selladocar.svg", "fondocar.svg"],
+    // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
+    orden: ["vidrio", "oro", "rojo", "letras", "sellado", "fondo"],
+    // Diseño de respaldo (se usa solo si los SVG no cargan)
+    formas: [{ t: "r", x: 100, y: 280, w: 824, h: 210, f: "#141e1d" }],
+    oro: [{ txt: "EL CACHAFAZ", x: 512, y: 410, font: "64px Rye", al: "center" }] },
   { titulo: "El Pobre Guido",
     texto: "Es una sanguchería chilena y picada tradicional que comenzó como un pequeño puesto callejero que vendía anticuchos y bebidas en la esquina de Franklin, convirtiéndose con los años en la primera sanguchería instalada en esa calle y un clásico de la gastronomía popular de Santiago.",
     fondo: "#17324d",
@@ -518,7 +530,7 @@ async function buscarArchivo(src) {
   }
   throw new Error("no se encontró. Probé: " + intentos.join(" | "));
 }
-async function cargarImagen(src, limpiar) {
+async function cargarImagen(src, limpiar, recorte) {
   let url = src, vbTxt = "", detalle = "";
   // PNG, JPG, WebP: se cargan directo, sin el ajuste de tamaño que solo aplica a los SVG
   if (!/\.svg(\?|#|$)/i.test(src)) {
@@ -544,6 +556,10 @@ async function cargarImagen(src, limpiar) {
       .replace(/mix-blend-mode\s*:\s*[\w-]+\s*;?/g, "");
     const svg = new DOMParser().parseFromString(txt, "image/svg+xml").documentElement;
     if (svg.nodeName.toLowerCase() === "svg") {
+      if (recorte) { // recorta el lienzo a una zona [x, y, ancho, alto] (en unidades del SVG): para diseños que ocupan solo una parte de la hoja
+        svg.setAttribute("viewBox", recorte.join(" "));
+        svg.setAttribute("width", recorte[2]); svg.setAttribute("height", recorte[3]);
+      }
       vbTxt = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(n => Math.round(Number(n))).join(" ");
       const vb = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number);
       const w = svg.getAttribute("width"), h = svg.getAttribute("height");
@@ -564,7 +580,7 @@ async function cargarImagen(src, limpiar) {
 async function cargarSvgs(c) {
   try {
     // Si un archivo falla, esa capa queda vacía (con aviso) y el resto del cartel se muestra igual
-    const imgs = await Promise.all(c.svg.map(s => cargarImagen(s, c.solido?.includes(s)).catch(e => { avisar(c.titulo + ": " + e.message); return null; })));
+    const imgs = await Promise.all(c.svg.map(s => cargarImagen(s, c.solido?.includes(s), c.recorte).catch(e => { avisar(c.titulo + ": " + e.message); return null; })));
     const cargadas = imgs.filter(Boolean);
     if (!cargadas.length) throw new Error("no se pudo abrir ninguno de sus archivos");
     const ref = imgs[imgs.length - 1] || cargadas[cargadas.length - 1];
@@ -681,7 +697,7 @@ function miniatura(tx) {
 const tactil = matchMedia("(hover: none)");
 const cerrarInfo = () => galeria.querySelectorAll(".cartel.activo").forEach(x => x.classList.remove("activo"));
 inicio.addEventListener("click", e => { if (!e.target.closest(".cartel")) cerrarInfo(); });
-await Promise.all([cargarSvgs(carteles[0]), cargarSvgs(carteles[1]), cargarSvgs(carteles[2])]);
+await Promise.all(carteles.filter(c => c.svg).map(cargarSvgs));
 galeria.textContent = "";
 const minis = [];
 carteles.forEach((c, i) => {
@@ -865,7 +881,20 @@ const SECCIONES = {
   },
   contornos: { def: definiciones[2], info: infoCapas[2], video: 'contorno.mp4' },
   pintura: { def: definiciones[3], info: infoCapas[3] },
-  fondo: { def: definiciones[4], info: infoCapas[4], video: 'fondo.mp4' }
+  fondo: { def: definiciones[4], info: infoCapas[4], video: 'fondo.mp4' },
+  // Secciones del cartel de El Cachafaz (el rojo va por delante del blanco, por eso se aplica antes)
+  rojo: {
+    def: { nombre: "Las letras rojas", descripcion: "El rojo cubre la parte superior de las letras. Queda por delante del blanco, por eso se aplica antes que él." },
+    info: { nombre: "Letras rojas", parrafos: ["El rojo se aplica por el reverso del vidrio sobre la parte superior de las letras. Al mirar la obra desde el frente queda por delante del blanco, por eso se pinta antes que él."] }
+  },
+  letras: {
+    def: { nombre: "Las letras blancas", descripcion: "El blanco completa las letras por detrás del rojo y las hace destacar sobre el fondo oscuro." },
+    info: { nombre: "Letras blancas", parrafos: ["El blanco completa las letras por detrás del rojo. Su tono claro las hace resaltar sobre la capa oscura que las rodea."] }
+  },
+  sellado: {
+    def: { nombre: "El sellado", descripcion: "Una capa oscura cubre el interior del cartel y deja resaltar el dorado y las letras." },
+    info: { nombre: "Sellado", parrafos: ["El sellado es la capa oscura que rodea las letras y los ornamentos. Se aplica por detrás de ellos y les da contraste."] }
+  }
 };
 // Reparte los planos según las capas del cartel elegido (juntos y separados, siempre centrados)
 function ubicarCapas(n) {
@@ -911,12 +940,13 @@ function pintarInfo() {
   }
   reproducirVideo(infoDer.classList.contains('abierto'));
 }
-infoTab.addEventListener("click", () => {
-  const abierta = infoDer.classList.toggle("abierto");
+function fijarInfo(abierta) {
+  infoDer.classList.toggle("abierto", abierta);
   infoTab.setAttribute("aria-expanded", String(abierta));
   infoTab.querySelector(".mas").textContent = abierta ? "−" : "+";
   reproducirVideo(abierta);
-});
+}
+infoTab.addEventListener("click", () => fijarInfo(!infoDer.classList.contains("abierto")));
 
 function actualizarInterfaz() {
   document.querySelector(".progreso").style.setProperty("--n", defs.length);
@@ -944,6 +974,7 @@ function reiniciar() {
   mostrarCapas();
   botonSeparar.textContent = "Separar capas 3D";
   actualizarInterfaz();
+  fijarInfo(true); // al iniciar la primera capa, "¿Qué pasa en esta capa?" aparece desplegada
   camara.position.set(0, 0, DIST);
   controles.target.set(0, 0, 0);
   desplazoX = 0; desplazoY = 0;
