@@ -343,14 +343,15 @@ const crearVidrio = (w = ancho, h = alto, caja = null) => crearTextura(ctx => {
   const x0 = caja ? caja.x : 0, y0 = caja ? caja.y : 0, cw = caja ? caja.w : w, ch = caja ? caja.h : h;
   const k = cw / ancho;
   ctx.translate(x0, y0);
+  // el marco del vidrio llega hasta el borde de la caja (mismo tamaño que el fondo)
   ctx.strokeStyle = "rgba(205,225,218,0.75)"; ctx.lineWidth = 6 * k;
-  ctx.strokeRect(30 * k, 30 * k, cw - 60 * k, ch - 60 * k);
+  ctx.strokeRect(3 * k, 3 * k, cw - 6 * k, ch - 6 * k);
   ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 2 * k;
-  ctx.strokeRect(44 * k, 44 * k, cw - 88 * k, ch - 88 * k);
+  ctx.strokeRect(17 * k, 17 * k, cw - 34 * k, ch - 34 * k);
   const g = ctx.createLinearGradient(0, 0, cw, ch);
   g.addColorStop(0, "rgba(255,255,255,0.08)"); g.addColorStop(0.4, "rgba(255,255,255,0)");
   g.addColorStop(0.7, "rgba(255,255,255,0.04)"); g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g; ctx.fillRect(30 * k, 30 * k, cw - 60 * k, ch - 60 * k);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, cw, ch);
 }, w, h);
 const vidrio = crearVidrio();
 
@@ -409,7 +410,6 @@ const carteles = [
     fondo: "#f2c98a",
     relleno: "#2f6b45", // color con que se extiende el verde si el centro del SVG es transparente
     vidrioForma: true, // el vidrio toma la forma (caja visible) del fondo
-    vidrioEscala: 1.12, // tamaño extra solo del vidrio (1 = igual que las demás capas; sube o baja el número para ajustarlo)
     // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
     svg: ["oro2.svg", "blancos2.svg", "rojo.svg", "contorno2.svg", "verdes.svg", "fondo2.svg"],
     solido: ["oro2.svg"], // el oro se muestra 100% opaco (se quitan opacidades y mezclas del SVG)
@@ -585,7 +585,7 @@ async function cargarSvgs(c) {
     // Caja visible del fondo (para que el vidrio tenga su misma forma)
     let cajaFondo = null;
     const imgFondo = imgs[imgs.length - 1];
-    if (c.vidrioForma && imgFondo) {
+    if (imgFondo) { // el vidrio siempre toma el tamaño visible del fondo
       const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
       const cx = cv.getContext("2d"), m = c.margen ?? 1;
       cx.drawImage(imgFondo, w * (1 - m) / 2, h * (1 - m) / 2, w * m, h * m);
@@ -614,7 +614,7 @@ async function cargarSvgs(c) {
         const d = ctx.getImageData(w >> 1, h >> 1, 1, 1).data;
         ctx.globalCompositeOperation = "destination-over";
         ctx.fillStyle = d[3] ? `rgb(${d[0]},${d[1]},${d[2]})` : (c.relleno || "#bf8ab8");
-        if (cajaFondo) ctx.fillRect(cajaFondo.x, cajaFondo.y, cajaFondo.w, cajaFondo.h);
+        if (cajaFondo && c.vidrioForma) ctx.fillRect(cajaFondo.x, cajaFondo.y, cajaFondo.w, cajaFondo.h);
         else ctx.fillRect(0, 0, w, h);
       }
     }, w, h));
@@ -1097,11 +1097,9 @@ window.addEventListener("resize", () => {
 actualizarInterfaz();
 
 renderizador.setAnimationLoop(() => {
-  // Con la obra completa y acoplada, el vidrio se desvanece para que solo se vea la ilustración
-  const matVidrio = capas[0].material;
-  const ocultarVidrio = paso === defs.length - 1 && !capasSeparadas;
-  matVidrio.opacity += ((ocultarVidrio ? 0 : 1) - matVidrio.opacity) * 0.08;
-  capas[0].visible = matVidrio.opacity > 0.01;
+  // El vidrio siempre permanece visible (en todos los carteles y en todas las capas)
+  capas[0].material.opacity = 1;
+  capas[0].visible = true;
   capas.forEach(capa => {
     const objetivoZ = capasSeparadas ? capa.userData.zSeparada : capa.userData.zJunta;
     capa.position.z += (objetivoZ - capa.position.z) * 0.08;
@@ -1110,6 +1108,9 @@ renderizador.setAnimationLoop(() => {
       ? (nCapas - 1) - capa.userData.indexOriginal
       : capa.userData.indexOriginal;
   });
+  // El vidrio se dibuja al final pero CON prueba de profundidad: por el frente queda encima de todo y por el reverso el fondo lo tapa
+  capas[0].renderOrder = 100;
+  capas[0].material.depthTest = true;
   grupoObra.rotation.y += (anguloObjetivo - grupoObra.rotation.y) * 0.08;
   if (centrando) pasoCentrar();
   controles.update();
