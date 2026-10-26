@@ -411,12 +411,15 @@ const carteles = [
     relleno: "#2f6b45", // color con que se extiende el verde si el centro del SVG es transparente
     vidrioForma: true, // el vidrio toma la forma (caja visible) del fondo
     // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
-    svg: ["oro2.svg", "blancos2.svg", "rojo.svg", "contorno2.svg", "verdes.svg", "fondo2.svg"],
+    // El contorno va antes que la pintura (rojo y verdes), igual que en el orden de aplicación
+    svg: ["oro2.svg", "blancos2.svg", "contorno2.svg", "rojo.svg", "verdes.svg", "fondo2.svg"],
     solido: ["oro2.svg"], // el oro se muestra 100% opaco (se quitan opacidades y mezclas del SVG)
     // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
-    orden: ["vidrio", "oro", "blancos", "pintura", "contornos", "fondo"],
-    // Capas (por posición en "svg", con el vidrio = 0) que aparecen en cada etapa: rojo (3) y verdes (5) entran juntos en la pintura, pero siguen siendo planos distintos al separar las capas 3D
-    etapas: [[0], [1], [2], [3, 5], [4], [6]],
+    orden: ["vidrio", "oro", "blancos", "contornos", "pintura", "fondo"],
+    // Capas (por posición en "svg", con el vidrio = 0) que aparecen en cada etapa: rojo (4) y verdes (5) entran juntos en la pintura, pero siguen siendo planos distintos al separar las capas 3D
+    etapas: [[0], [1], [2], [3], [4, 5], [6]],
+    // Video propio de una sección solo para este cartel (la pintura de este cartel tiene su video)
+    videosSeccion: { pintura: "pintura.mp4" },
     // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [
       { t: "c", x: 512, y: 470, r: 150, a0: P, a1: 2 * P, f: "#d9472b" },
@@ -988,7 +991,10 @@ function elegir(i) {
     defs = c.orden.map(k => SECCIONES[k].def);
     infos = c.orden.map(k => SECCIONES[k].info);
     vids = {};
-    c.orden.forEach((k, j) => { if (SECCIONES[k].video) vids[j] = SECCIONES[k].video; });
+    c.orden.forEach((k, j) => {
+      const v = c.videosSeccion?.[k] ?? SECCIONES[k].video; // un cartel puede tener su propio video para una sección
+      if (v) vids[j] = v;
+    });
   } else {
     defs = definiciones.map((d, k) => c.definiciones?.[k] ?? d);
     infos = infoCapas.map((d, k) => c.info?.[k] ?? d);
