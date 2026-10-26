@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Vidrio eglomizado | Obra interactiva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Karla:wght@500;700&family=Rye&display=swap" rel="stylesheet" />
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<style>
+:root{--rojo:#a3231d;--rojo-osc:#5f120f;--crema:#efe9d7;--oro:#d9b45a;--oro-claro:#f6e3a0;--oro-osc:#94722a;--azul:#2f7db5;--azul-osc:#0e2d54;--amarillo:#eab92f;--tinta:#3b2a20}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;overflow:hidden;font-family:"Karla",Arial,sans-serif;color:var(--tinta);
+background:radial-gradient(circle at 6% 94%,rgba(196,42,52,.55) 0,rgba(196,42,52,0) 24%),radial-gradient(circle at 97% 6%,rgba(44,96,160,.5) 0,rgba(44,96,160,0) 28%),radial-gradient(circle at 50% 45%,#46484a 0,#232526 85%),#222}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.55;mix-blend-mode:overlay;
+background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+#escena{position:fixed;inset:0;touch-action:none}
+#escena canvas{display:block;touch-action:none}
+
+/* ---------- PANTALLA INICIAL ---------- */
+#inicio{position:fixed;inset:0;z-index:10;overflow:auto;display:flex;flex-direction:column;align-items:center;
+padding:max(28px,env(safe-area-inset-top,0px)) 24px 32px;transition:opacity .5s,visibility .5s;
+background:radial-gradient(circle at 50% 40%,#3b3d3f 0,#1c1d1e 90%)}
+#inicio.oculto{opacity:0;visibility:hidden;pointer-events:none}
+#inicio h1{margin:8px 0 6px;font-family:"Rye",serif;font-weight:normal;font-size:clamp(26px,5vw,48px);text-align:center;text-transform:uppercase;color:var(--oro-claro);
+text-shadow:2px 2px 0 var(--oro-osc),4px 4px 0 var(--rojo-osc)}
+#inicio .sub{margin:0 0 26px;text-align:center;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:13px;color:var(--crema);opacity:.8}
+/* Carrusel: un cartel a la vez, con flechas a los costados y deslizado con el dedo */
+.visor{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;margin:auto 0}
+.galeria{position:relative;display:flex;gap:26px;flex:none;width:min(900px,calc(100% - 156px),calc((100dvh - 240px) * 4 / 3 + 32px));padding:16px 16px 24px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-padding-inline:16px;scrollbar-width:none;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.galeria::-webkit-scrollbar{display:none}
+.cargando{flex:0 0 100%;grid-column:1/-1;text-align:center;color:var(--crema);letter-spacing:2px;text-transform:uppercase;font-weight:700;font-size:13px}
+.flecha{flex:none;display:grid;place-items:center;width:68px;height:68px;padding:0 0 6px;font-family:"Alfa Slab One",serif;font-size:44px;line-height:1;color:var(--crema);background:var(--rojo);border:3px solid var(--rojo-osc);box-shadow:5px 5px 0 var(--amarillo);text-shadow:1px 1px 0 var(--rojo-osc);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.flecha:active:not(:disabled){transform:translate(4px,4px);box-shadow:1px 1px 0 var(--amarillo)}
+.flecha:disabled{opacity:.3;cursor:default;box-shadow:2px 2px 0 var(--amarillo)}
+.puntos{display:flex;gap:14px;justify-content:center;margin-top:4px}
+.punto{width:16px;height:16px;padding:0;border-radius:50%;border:2px solid var(--oro);background:transparent;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;position:relative}
+.punto::after{content:"";position:absolute;inset:-14px}
+.punto.on{background:var(--oro)}
+@media(max-width:700px){.flecha{width:48px;height:48px;font-size:32px}.visor{gap:8px}.galeria{width:calc(100% - 112px)}}
+.cartel{position:relative;aspect-ratio:4/3;cursor:pointer;overflow:hidden;outline:none;border:8px solid var(--oro);box-shadow:0 0 0 2px var(--oro-osc),8px 8px 0 rgba(0,0,0,.55);background:#222;transition:transform .2s,box-shadow .2s}
+.cartel{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;touch-action:manipulation}
+.cartel{flex:0 0 100%;scroll-snap-align:center}
+.cartel:focus-visible,.cartel.activo{transform:translateY(-6px) rotate(-.6deg);box-shadow:0 0 0 2px var(--oro-osc),12px 14px 0 rgba(0,0,0,.55)}
+@media(hover:hover){.cartel:hover{transform:translateY(-6px) rotate(-.6deg);box-shadow:0 0 0 2px var(--oro-osc),12px 14px 0 rgba(0,0,0,.55)}.cartel:hover .info{opacity:1}}
+.cartel img{display:block;width:100%;height:100%;object-fit:cover;user-select:none}
+.info{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:22px;text-align:center;background:linear-gradient(180deg,rgba(20,12,8,.86),rgba(20,12,8,.94));opacity:0;transition:opacity .25s}
+.info h3{margin:0 0 10px;font-family:"Rye",serif;font-weight:normal;font-size:22px;text-transform:uppercase;color:var(--oro)}
+.info p{margin:0 0 14px;font-size:15px;line-height:1.5;font-weight:500;color:var(--crema)}
+.info span{font-family:"Alfa Slab One",serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--oro)}
+.info{pointer-events:none}
+.cartel:focus-visible .info,.cartel.activo .info{opacity:1}
+.cartel.activo .info{pointer-events:auto}
+.info .entrar{display:none;align-self:center;margin-top:4px;padding:14px 22px;font-family:"Alfa Slab One",serif;font-size:15px;letter-spacing:.6px;text-transform:uppercase;color:var(--crema);background:var(--rojo);border:3px solid var(--rojo-osc);box-shadow:4px 4px 0 var(--amarillo);cursor:pointer;touch-action:manipulation}
+.info .entrar:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--amarillo)}
+.solo-tactil{display:none}
+@media(hover:none){.info span{display:none}.info .entrar{display:block}.solo-mouse{display:none}.solo-tactil{display:inline}}
+
+/* ---------- PANEL PRINCIPAL ---------- */
+.panel{position:absolute;z-index:2;top:24px;left:24px;width:min(372px,calc(100vw - 48px));max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);overflow:auto;padding:12px;
+background:linear-gradient(135deg,var(--oro-claro),var(--oro) 38%,var(--oro-osc) 52%,var(--oro-claro) 78%,var(--oro));box-shadow:0 22px 45px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.35);scrollbar-width:none}
+.panel::-webkit-scrollbar{display:none}
+.cristal{position:relative;padding:34px 22px 26px;background:linear-gradient(112deg,rgba(255,255,255,.6) 0 7%,rgba(255,255,255,0) 7% 12%,rgba(255,255,255,.32) 12% 15%,rgba(255,255,255,0) 15%),linear-gradient(165deg,#f3eedf,#ddd5bd);box-shadow:inset 0 0 0 1px rgba(148,114,42,.5)}
+.cristal::before,.cristal::after{content:"";position:absolute;left:0;right:0;height:12px;background-size:24px 12px;background-repeat:repeat-x}
+.cristal::before{top:0;background-image:radial-gradient(circle at 12px 0,var(--oro) 11px,transparent 11.6px)}
+.cristal::after{bottom:0;background-image:radial-gradient(circle at 12px 12px,var(--oro) 11px,transparent 11.6px)}
+.panel h1{margin:0 0 12px;font-family:"Rye",serif;font-size:31px;font-weight:normal;line-height:1.06;text-align:center;text-transform:uppercase;color:var(--rojo);
+text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro),4px 4px 0 var(--oro-osc),5px 5px 3px rgba(60,30,10,.35)}
+.intro{margin:0;font-size:14px;line-height:1.55;font-weight:500;text-align:center}
+.placa{position:relative;margin:20px 0 14px;padding:13px 16px 16px;text-align:center;background:linear-gradient(155deg,rgba(255,255,255,.28) 0 22%,rgba(255,255,255,0) 22%),var(--azul);border:3px solid var(--azul-osc);box-shadow:inset 0 0 0 2px rgba(255,255,255,.28),5px 5px 0 var(--azul-osc)}
+#contador{font-family:"Rye",serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--oro-claro);text-shadow:1px 1px 0 var(--azul-osc)}
+#tituloCapa{margin-top:6px;font-family:"Alfa Slab One",serif;font-size:27px;line-height:1.1;text-transform:uppercase;letter-spacing:1px;color:#f6efd9;text-shadow:1px 1px 0 #c9c1a6,2px 2px 0 #0e2d54,3px 3px 0 #0e2d54,4px 4px 0 #0e2d54,5px 5px 0 #0a2244}
+#descripcion{min-height:72px;font-size:15px;line-height:1.55;font-weight:500}
+.progreso{position:relative;height:16px;margin:16px 0 6px;background:var(--rojo-osc);border:2px solid var(--rojo-osc);box-shadow:3px 3px 0 var(--amarillo)}
+#barra{height:100%;width:20%;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0) 55%),linear-gradient(90deg,var(--oro),var(--oro-claro),var(--oro));transition:width .45s cubic-bezier(.3,.9,.3,1)}
+.progreso::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(100% / var(--n,5) - 3px),var(--rojo-osc) calc(100% / var(--n,5) - 3px),var(--rojo-osc) calc(100% / var(--n,5)))}
+.panel button{display:block;width:100%;margin-top:14px;padding:13px 12px;font-family:"Alfa Slab One",serif;font-size:14px;letter-spacing:.6px;text-transform:uppercase;color:var(--crema);background:var(--rojo);border:3px solid var(--rojo-osc);box-shadow:5px 5px 0 var(--amarillo);text-shadow:1px 1px 0 var(--rojo-osc);cursor:pointer;transition:transform .12s,box-shadow .12s,filter .2s}
+.panel button:hover:not(:disabled){transform:translate(-1px,-1px);box-shadow:6px 6px 0 var(--amarillo)}
+.panel button:active:not(:disabled){transform:translate(4px,4px);box-shadow:1px 1px 0 var(--amarillo)}
+.panel button.secundario{margin-top:10px;background:var(--azul);border-color:var(--azul-osc);box-shadow:5px 5px 0 var(--azul-osc);text-shadow:1px 1px 0 var(--azul-osc)}
+.panel button.terciario{margin-top:14px;padding:8px;font-size:12px;color:var(--rojo);background:transparent;border:2px dashed var(--rojo);box-shadow:none;text-shadow:none}
+.panel button.terciario:hover:not(:disabled){transform:none;box-shadow:none;background:rgba(163,35,29,.08)}
+.panel button:disabled{cursor:default;filter:grayscale(.7);opacity:.6;box-shadow:2px 2px 0 var(--amarillo)}
+@media(max-width:600px){
+.panel{top:auto;bottom:12px;left:12px;width:calc(100vw - 24px);max-height:58vh;padding:9px}
+.cristal{padding:22px 14px 18px}.panel h1{font-size:20px}.intro{display:none}
+#tituloCapa{font-size:20px}#descripcion{min-height:0;font-size:13px}
+.panel button{margin-top:8px;padding:10px;font-size:12px}}
+/* ---------- VIÑETA DERECHA (se expande al tocar) ---------- */
+.panel-der{position:absolute;z-index:2;top:24px;right:24px;width:176px;padding:8px;background:linear-gradient(135deg,var(--oro-claro),var(--oro) 38%,var(--oro-osc) 52%,var(--oro-claro) 78%,var(--oro));box-shadow:0 22px 45px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.35);transition:width .35s cubic-bezier(.3,.9,.3,1)}
+#panel[hidden]+.panel-der{display:none}
+.panel-der.abierto{width:clamp(260px,calc(100vw - 468px),372px)}
+.panel-der .tab{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;font-family:"Alfa Slab One",serif;font-size:13px;letter-spacing:.6px;text-transform:uppercase;color:var(--crema);background:var(--azul);border:3px solid var(--azul-osc);box-shadow:3px 3px 0 var(--azul-osc);text-shadow:1px 1px 0 var(--azul-osc);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.panel-der .tab:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--azul-osc)}
+.panel-der .ico{display:inline-grid;place-items:center;flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--oro-claro);color:var(--oro-claro);font-family:"Rye",serif;font-size:14px;text-shadow:none}
+.panel-der .txt{flex:1;text-align:left}
+.panel-der .mas{font-size:22px;line-height:1}
+.panel-der .cuerpo{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s cubic-bezier(.3,.9,.3,1)}
+.panel-der.abierto .cuerpo{grid-template-rows:1fr}
+.panel-der .interior{overflow:hidden;min-height:0}
+.panel-der .cristal{margin-top:10px}
+.panel-der .texto{max-height:calc(100dvh - 230px);overflow:auto;scrollbar-width:none}
+.panel-der .texto::-webkit-scrollbar{display:none}
+.panel-der h2{margin:0 0 10px;font-family:"Rye",serif;font-weight:normal;font-size:22px;line-height:1.1;text-align:center;text-transform:uppercase;color:var(--rojo);text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro-osc)}
+.panel-der p{margin:0 0 10px;font-size:15px;line-height:1.55;font-weight:500;color:var(--tinta)}
+@media(max-width:600px){.panel-der{top:12px;right:12px;width:150px}.panel-der.abierto{width:calc(100vw - 24px)}.panel-der .texto{max-height:30vh}}
+/* ---------- BARRA INFERIOR ---------- */
+.barra{position:absolute;z-index:2;left:50%;bottom:max(16px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(780px,calc(100vw - 32px));padding:8px;background:linear-gradient(135deg,var(--oro-claro),var(--oro) 38%,var(--oro-osc) 52%,var(--oro-claro) 78%,var(--oro));box-shadow:0 18px 40px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.35)}
+#panel[hidden]~.barra{display:none}
+.barra .fila{display:flex;flex-wrap:wrap;gap:10px;padding:10px;background:linear-gradient(165deg,#f3eedf,#ddd5bd);box-shadow:inset 0 0 0 1px rgba(148,114,42,.5)}
+.barra button{flex:1 1 150px;padding:12px 10px;font-family:"Alfa Slab One",serif;font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--crema);background:var(--azul);border:3px solid var(--azul-osc);box-shadow:4px 4px 0 var(--azul-osc);text-shadow:1px 1px 0 var(--azul-osc);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:transform .12s,box-shadow .12s}
+.barra button:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--azul-osc)}
+.barra button.rojo{background:var(--rojo);border-color:var(--rojo-osc);box-shadow:4px 4px 0 var(--amarillo);text-shadow:1px 1px 0 var(--rojo-osc)}
+.barra button.rojo:active{box-shadow:1px 1px 0 var(--amarillo)}
+@media(hover:hover){.barra button:hover{transform:translate(-1px,-1px)}.barra button:active{transform:translate(3px,3px)}}
+.panel{max-height:calc(100dvh - 130px)}
+.panel-der .texto{max-height:calc(100dvh - 260px)}
+@media(max-width:600px){.panel{top:auto;bottom:122px;max-height:42vh}.panel-der .texto{max-height:30vh}.barra .fila{gap:8px;padding:8px}.barra button{flex:1 1 40%;padding:10px 8px;font-size:12px}}
+/* ---------- TEXTO POR CAPA (viñeta derecha) ---------- */
+.panel-der{width:210px}
+.panel-der .txt{font-size:12px;line-height:1.2;letter-spacing:.4px}
+.panel-der .kicker{margin:0 0 4px;text-align:center;font-family:"Rye",serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--azul)}
+.panel-der h2{font-size:20px;margin-bottom:12px}
+.panel-der h2::after{content:"";display:block;width:56px;height:3px;margin:9px auto 0;background:var(--oro);box-shadow:0 1px 0 var(--oro-osc)}
+#infoTexto p{margin:0 0 9px;font-size:13px;line-height:1.6;font-weight:500;color:var(--tinta);hyphens:auto;-webkit-hyphens:auto}
+#infoTexto p:last-child{margin-bottom:0}
+.panel-der .texto{max-height:calc(100dvh - 310px);padding-right:6px;scrollbar-width:thin;scrollbar-color:var(--oro-osc) transparent}
+.panel-der .texto::-webkit-scrollbar{display:block;width:5px}
+.panel-der .texto::-webkit-scrollbar-thumb{background:var(--oro-osc);border-radius:3px}
+@media(max-width:600px){.panel-der{width:190px}.panel-der .texto{max-height:30vh}}
+/* ---------- VIDEO POR CAPA (debajo del texto) ---------- */
+.panel-der .texto{max-height:max(120px,calc(100dvh - 360px))}
+.panel-der.con-video .texto{max-height:max(120px,calc(74dvh - 353px))}
+.panel-der .vid{display:block;width:100%;max-height:26dvh;margin-top:12px;object-fit:contain;background:#1b1410;border:3px solid var(--oro-osc);box-shadow:3px 3px 0 var(--azul-osc)}
+.panel-der .vid[hidden]{display:none}
+@media(max-width:600px){.panel-der .texto{max-height:30vh}.panel-der.con-video .texto{max-height:20vh}.panel-der .vid{max-height:20vh}}
+</style>
+</head>
+<body>
+<div id="escena"></div>
+
+<!-- PANTALLA INICIAL -->
+<main id="inicio">
+  <h1>Vidrio eglomizado</h1>
+  <p class="sub"><span class="solo-mouse">Elige un cartel para comenzar</span><span class="solo-tactil">Toca un cartel para ver su información</span></p>
+  <div class="visor">
+    <button type="button" class="flecha" id="prevCartel" aria-label="Cartel anterior">‹</button>
+    <section class="galeria" id="galeria"><p class="cargando">Cargando…</p></section>
+    <button type="button" class="flecha" id="nextCartel" aria-label="Cartel siguiente">›</button>
+  </div>
+  <div class="puntos" id="puntos"></div>
+</main>
+
+<!-- PANTALLA PRINCIPAL -->
+<section class="panel" id="panel" hidden>
+  <div class="cristal">
+    <h1>El reverso de la imagen</h1>
+    <p class="intro">En la técnica eglomizada se trabaja por detrás del vidrio de forma invertida.</p>
+    <div class="placa"><div id="contador">Capa 1 de 5</div><div id="tituloCapa">El vidrio</div></div>
+    <div id="descripcion">Soporte transparente. Se trabaja por detrás partiendo en modo espejo.</div>
+    <div class="progreso"><div id="barra"></div></div>
+    <button id="siguiente">Incorporar siguiente capa →</button>
+    <button id="carteles" class="terciario">← Elegir otro cartel</button>
+  </div>
+</section>
+
+<!-- VIÑETA DE INFORMACIÓN (derecha) -->
+<aside class="panel-der" id="infoDer">
+  <button type="button" class="tab" id="infoTab" aria-expanded="false" aria-controls="infoCuerpo">
+    <span class="ico">i</span><span class="txt">¿Qué pasa en esta capa?</span><span class="mas">+</span>
+  </button>
+  <div class="cuerpo" id="infoCuerpo">
+    <div class="interior">
+      <div class="cristal">
+        <div class="texto">
+          <p class="kicker" id="infoKicker"></p>
+          <h2 id="infoTitulo"></h2>
+          <div id="infoTexto"></div>
+          
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- BARRA DE BOTONES (abajo) -->
+<nav class="barra" aria-label="Controles de la obra">
+  <div class="fila">
+    <button id="voltear" type="button">Ver el frente</button>
+    <button id="separar" type="button">Separar capas 3D</button>
+    <button id="centrar" type="button">Centrar vista</button>
+    <button id="reiniciar" type="button" class="rojo">Volver a comenzar</button>
+  </div>
+</nav>
+
+<script type="module">
+const inicio = document.getElementById("inicio");
+const panel = document.getElementById("panel");
+const galeria = document.getElementById("galeria");
+
+function avisar(texto) {
+  let caja = document.getElementById("avisos");
+  if (!caja) {
+    caja = document.createElement("div");
+    caja.id = "avisos";
+    caja.style.cssText = "position:fixed;right:24px;bottom:24px;max-width:320px;display:flex;flex-direction:column;gap:8px;z-index:20;max-height:80vh;overflow:auto";
+    document.body.appendChild(caja);
+  }
+  const aviso = document.createElement("div");
+  aviso.textContent = texto;
+  aviso.style.cssText = "padding:14px 16px;background:#a3231d;color:#efe9d7;border:3px solid #d9b45a;font:500 14px/1.5 sans-serif";
+  caja.appendChild(aviso);
+  setTimeout(() => aviso.remove(), 20000);
+}
+
+let THREE, OrbitControls;
+try {
+  THREE = await import("three");
+  ({ OrbitControls } = await import("three/addons/controls/OrbitControls.js"));
+} catch (error) {
+  avisar("No se pudo cargar la librería 3D. Revisa la conexión a internet.");
+  throw error;
+}
+try {
+  await Promise.all([document.fonts.load("64px Rye"), document.fonts.load("28px 'Alfa Slab One'")]);
+} catch (e) {}
+
+const DIST = 7.6; // distancia de la cámara a la obra (antes 9): más chico = obra más grande
+const contenedor = document.getElementById("escena");
+const escena = new THREE.Scene();
+const camara = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 1, 100);
+camara.position.set(0, 0, DIST);
+
+let renderizador;
+try {
+  renderizador = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+} catch (error) {
+  avisar("Error al iniciar WebGL.");
+  throw error;
+}
+renderizador.setClearColor(0x000000, 0);
+renderizador.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderizador.setSize(window.innerWidth, window.innerHeight);
+contenedor.appendChild(renderizador.domElement);
+
+const controles = new OrbitControls(camara, renderizador.domElement);
+controles.enableDamping = true;
+controles.dampingFactor = 0.06;
+controles.minDistance = 5;
+controles.maxDistance = 14;
+controles.enablePan = true; // dos dedos (o clic derecho) mueven el cartel; "Centrar vista" o doble toque lo devuelven al centro
+controles.screenSpacePanning = true;
+controles.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }; // un dedo gira, dos dedos mueven y hacen zoom
+controles.target.set(0, 0, 0);
+let centrando = false;
+controles.addEventListener("start", () => { centrando = false; });
+
+const grupoObra = new THREE.Group();
+grupoObra.rotation.y = Math.PI;
+escena.add(grupoObra);
+escena.add(new THREE.HemisphereLight(0xfff4dc, 0x4a554e, 2.2));
+const luz = new THREE.DirectionalLight(0xffe5ac, 2.0);
+luz.position.set(3, 5, 7);
+escena.add(luz);
+
+const ancho = 1024, alto = 768;
+
+function crearTextura(dibujar, w = ancho, h = alto) {
+  const lienzo = document.createElement("canvas");
+  lienzo.width = w; lienzo.height = h;
+  dibujar(lienzo.getContext("2d"));
+  const textura = new THREE.CanvasTexture(lienzo);
+  textura.colorSpace = THREE.SRGBColorSpace;
+  textura.anisotropy = renderizador.capabilities.getMaxAnisotropy();
+  return textura;
+}
+
+const crearVidrio = (w = ancho, h = alto, caja = null) => crearTextura(ctx => {
+  // caja = {x, y, w, h}: zona donde se dibuja el vidrio (por defecto, todo el lienzo)
+  const x0 = caja ? caja.x : 0, y0 = caja ? caja.y : 0, cw = caja ? caja.w : w, ch = caja ? caja.h : h;
+  const k = cw / ancho;
+  ctx.translate(x0, y0);
+  ctx.strokeStyle = "rgba(205,225,218,0.75)"; ctx.lineWidth = 6 * k;
+  ctx.strokeRect(30 * k, 30 * k, cw - 60 * k, ch - 60 * k);
+  ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 2 * k;
+  ctx.strokeRect(44 * k, 44 * k, cw - 88 * k, ch - 88 * k);
+  const g = ctx.createLinearGradient(0, 0, cw, ch);
+  g.addColorStop(0, "rgba(255,255,255,0.08)"); g.addColorStop(0.4, "rgba(255,255,255,0)");
+  g.addColorStop(0.7, "rgba(255,255,255,0.04)"); g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g; ctx.fillRect(30 * k, 30 * k, cw - 60 * k, ch - 60 * k);
+}, w, h);
+const vidrio = crearVidrio();
+
+/* ---------- DISEÑOS DE LOS CARTELES ----------
+   formas: se pintan (f) y se contornean (k:1 = sin contorno). oro: trazos y rotulación dorada.
+   Tipos: c círculo/arco, e elipse, r rectángulo, p polígono, l línea, b curva bezier. */
+const P = Math.PI, ORO = "#d6b45f";
+const rayos = (cx, cy, r1, r2, n, a0 = 0, a1 = 2 * P) => Array.from({ length: n }, (_, i) => {
+  const a = a0 + (a1 - a0) * i / (n - 1 || 1);
+  return { t: "l", pts: [[cx + Math.cos(a) * r1, cy + Math.sin(a) * r1], [cx + Math.cos(a) * r2, cy + Math.sin(a) * r2]] };
+});
+const petalos = (cx, cy, n, d, rx, ry, cols) => Array.from({ length: n }, (_, i) => {
+  const a = i * 2 * P / n;
+  return { t: "e", x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d, rx, ry, rot: a, f: cols[i % cols.length] };
+});
+const edificios = [[150,330,110],[260,250,100],[360,380,90],[450,200,120],[570,320,100],[670,420,90],[760,300,110]]
+  .flatMap(([x, y, w], i) => {
+    const fs = [{ t: "r", x, y, w, h: 668 - y, f: ["#a3231d", "#e8dfc4", "#eab92f"][i % 3] }];
+    for (let v = y + 30; v < 630; v += 50)
+      fs.push({ t: "r", x: x + 18, y: v, w: 20, h: 26, f: "#17324d", k: 1 }, { t: "r", x: x + w - 38, y: v, w: 20, h: 26, f: "#17324d", k: 1 });
+    return fs;
+  });
+
+const carteles = [
+  { titulo: "Mamba Rosa",
+    texto: "Mamba Rosa es una tienda de accesorios y bisutería de diseño que vende aros, collares, pulseras y piezas llamativas para el día a día. Velan por hacer diseños expresivos y personalizados",
+    fondo: "#b4d4e1",
+    // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
+    svg: ["oro.svg", "blancos.svg", "pintura.svg", "fondo.svg"],
+    definiciones: [null, null,
+      { nombre: "Los blancos", descripcion: "El blanco rellena el interior de las letras y sirve de base luminosa. Queda por delante de la sombra rosada." },
+      { nombre: "La pintura", descripcion: "La pintura rosada dibuja la sombra de las letras y las despega del fondo." },
+      null],
+    info: [null, null,
+      { nombre: "Blancos", parrafos: ["El blanco cubre el interior de las letras y sirve de base luminosa para los detalles. Al mirar la obra desde el frente queda por delante de la pintura, por eso se aplica antes que ella."] },
+      { nombre: "Pintura", parrafos: ["La pintura rosada dibuja la sombra de las letras, aporta profundidad y las separa del fondo. Al trabajar por el reverso, se ve a través del vidrio y por detrás de los blancos."] },
+      null],
+    videos: { 1: 'oro.mp4', 4: 'fondo.mp4' }, // el video de contorno ya no aplica a este cartel
+    // Diseño de respaldo (se usa solo si los SVG no cargan)
+    formas: [
+      { t: "c", x: 680, y: 280, r: 100, f: "#e8cf84" },
+      ...petalos(320, 420, 7, 50, 30, 16, ["#bd3a2b", "#e67e22"]),
+      { t: "c", x: 320, y: 420, r: 15, f: "#f39c12" },
+      { t: "b", pts: [320, 420, 480, 450, 620, 520, 850, 480] },
+      ...[[520, 465], [660, 500], [780, 490]].map(([x, y]) => ({ t: "c", x, y, r: 12, f: "#27ae60" })),
+      { t: "r", x: 110, y: 595, w: 420, h: 75, rd: 12, f: "#5f120f" }
+    ],
+    oro: [
+      { t: "c", x: 680, y: 280, r: 110 }, ...rayos(680, 280, 125, 165, 7, -0.94, 0.94),
+      { t: "b", pts: [120, 620, 280, 600, 320, 380, 220, 220] },
+      { txt: "1926", x: 140, y: 180, font: "64px Rye" },
+      { txt: "TALLER EGLOMIZADO", x: 140, y: 650, font: "28px 'Alfa Slab One'" }
+    ] },
+  { titulo: "Antigüedades Rafael Cornejo",
+    texto: "Antigüedades Rafael Cornejo es un conocido local dedicado a la compraventa de artículos usados y antigüedades, ubicado en Caupolicán 502, Providencia.",
+    fondo: "#f2c98a",
+    relleno: "#2f6b45", // color con que se extiende el verde si el centro del SVG es transparente
+    vidrioForma: true, // el vidrio toma la forma (caja visible) del fondo
+    vidrioEscala: 1.12, // tamaño extra solo del vidrio (1 = igual que las demás capas; sube o baja el número para ajustarlo)
+    // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
+    svg: ["oro2.svg", "blancos2.svg", "rojo.svg", "contorno2.svg", "verdes.svg", "fondo2.svg"],
+    solido: ["oro2.svg"], // el oro se muestra 100% opaco (se quitan opacidades y mezclas del SVG)
+    // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
+    orden: ["vidrio", "oro", "blancos", "pintura", "contornos", "fondo", "pintura"],
+    // Diseño de respaldo (se usa solo si los SVG no cargan)
+    formas: [
+      { t: "c", x: 512, y: 470, r: 150, a0: P, a1: 2 * P, f: "#d9472b" },
+      { t: "p", pts: [[100, 470], [250, 290], [400, 470]], f: "#6b3f5e" },
+      { t: "p", pts: [[600, 470], [760, 330], [924, 470]], f: "#4a2e4a" },
+      { t: "r", x: 100, y: 470, w: 824, h: 198, f: "#1f5f8b" },
+      { t: "r", x: 300, y: 520, w: 424, h: 14, rd: 7, f: "#8cc6e0" },
+      { t: "r", x: 360, y: 560, w: 304, h: 14, rd: 7, f: "#8cc6e0" },
+      { t: "r", x: 420, y: 600, w: 184, h: 14, rd: 7, f: "#8cc6e0" }
+    ],
+    oro: [
+      { t: "c", x: 512, y: 470, r: 150, a0: P, a1: 2 * P }, ...rayos(512, 470, 170, 250, 11, P + 0.2, 2 * P - 0.2),
+      { t: "l", pts: [[100, 470], [924, 470]] },
+      { txt: "AMANECER", x: 512, y: 180, font: "60px Rye", al: "center" }
+    ] },
+  { titulo: "El Pobre Guido",
+    texto: "Es una sanguchería chilena y picada tradicional que comenzó como un pequeño puesto callejero que vendía anticuchos y bebidas en la esquina de Franklin, convirtiéndose con los años en la primera sanguchería instalada en esa calle y un clásico de la gastronomía popular de Santiago.",
+    fondo: "#17324d",
+    ajustar: true, // si el diseño es más alto que 4:3, se limita por el alto para que no se salga del marco
+    margen: 1, // el diseño ocupa todo el vidrio (1 = ocupa todo; baja el número, por ejemplo 0.9, para dejar aire alrededor)
+    solido: ["oro3.svg"], // el oro se muestra 100% opaco
+    encajar: true, // cada capa (menos el fondo) se ajusta al vidrio SIN estirarse, aunque su lienzo tenga otra proporción
+    // cada capa se escala y centra para calzar con los blancos; en la pintura, 0.012 = cuánta sombra asoma a la derecha y abajo
+    alinear: { "oro3.svg": "blancos3.svg", "pintura3.svg": ["blancos3.svg", 0.012] },
+    // SVG/PNG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
+    svg: ["oro3.svg", "blancos3.svg", "pintura3.svg", "fondo3.svg"],
+    // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
+    orden: ["vidrio", "oro", "blancos", "pintura", "fondo"],
+    // Diseño de respaldo (se usa solo si los archivos no cargan)
+    formas: [{ t: "c", x: 800, y: 200, r: 60, f: "#efe9d7" }, ...edificios],
+    oro: [
+      { t: "c", x: 800, y: 200, r: 72 },
+      { t: "p", pts: [[510, 95], [520, 130], [555, 140], [520, 150], [510, 185], [500, 150], [465, 140], [500, 130]] },
+      { t: "l", pts: [[100, 668], [924, 668]] },
+      { txt: "METRÓPOLIS", x: 300, y: 175, font: "44px Rye", al: "center" }
+    ] },
+  { titulo: "(contexto)", texto: "(contexto)", fondo: "#0f6b78",
+    formas: [
+      { t: "r", x: 100, y: 630, w: 824, h: 58, f: "#e6cf9a" },
+      { t: "p", pts: [[720, 668], [740, 560], [715, 480], [765, 560], [760, 668]], f: "#2e8b57" },
+      { t: "p", pts: [[320, 560], [375, 525], [375, 595]], f: "#eab92f" },
+      { t: "e", x: 250, y: 560, rx: 70, ry: 35, f: "#eab92f" },
+      { t: "p", pts: [[640, 380], [800, 290], [770, 380], [800, 470]], f: "#a3231d" },
+      { t: "p", pts: [[440, 290], [520, 210], [560, 300]], f: "#a3231d" },
+      { t: "e", x: 480, y: 380, rx: 190, ry: 100, f: "#e8742a" },
+      { t: "c", x: 400, y: 350, r: 22, f: "#efe9d7" },
+      { t: "c", x: 400, y: 350, r: 9, f: "#17324d", k: 1 },
+      { t: "c", x: 250, y: 260, r: 18, f: "#bfe3e6" }, { t: "c", x: 305, y: 195, r: 12, f: "#bfe3e6" }, { t: "c", x: 210, y: 330, r: 10, f: "#bfe3e6" }
+    ],
+    oro: [
+      ...Array.from({ length: 8 }, (_, i) => ({ t: "c", x: 440 + (i % 4) * 50 + (i > 3 ? 25 : 0), y: i > 3 ? 430 : 340, r: 38, a0: -1.1, a1: 1.1 })),
+      { t: "c", x: 400, y: 350, r: 34 },
+      { txt: "ACUARIO", x: 512, y: 170, font: "60px Rye", al: "center" }
+    ] }
+];
+
+function trazo(ctx, s) {
+  ctx.beginPath();
+  if (s.t === "c") { ctx.arc(s.x, s.y, s.r, s.a0 ?? 0, s.a1 ?? 2 * P); if (s.a0 !== undefined && s.f) ctx.closePath(); }
+  else if (s.t === "e") ctx.ellipse(s.x, s.y, s.rx, s.ry, s.rot || 0, 0, 2 * P);
+  else if (s.t === "r") ctx.roundRect(s.x, s.y, s.w, s.h, s.rd || 0);
+  else if (s.t === "b") { ctx.moveTo(s.pts[0], s.pts[1]); ctx.bezierCurveTo(...s.pts.slice(2)); }
+  else { s.pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); if (s.t === "p") ctx.closePath(); }
+}
+
+// Las 5 capas de un cartel, de adelante hacia atrás: vidrio, dorado, contornos, pintura, fondo
+function capasDe(p) {
+  return [
+    vidrio,
+    crearTextura(ctx => {
+      ctx.strokeStyle = ctx.fillStyle = ORO; ctx.lineJoin = ctx.lineCap = "round";
+      ctx.lineWidth = 8; ctx.strokeRect(80, 80, 864, 608);
+      ctx.lineWidth = 3; ctx.strokeRect(98, 98, 828, 572);
+      ctx.lineWidth = 8;
+      p.oro.forEach(s => {
+        if (s.txt) { ctx.font = s.font; ctx.textAlign = s.al || "left"; ctx.fillText(s.txt, s.x, s.y); }
+        else { trazo(ctx, s); ctx.stroke(); }
+      });
+    }),
+    crearTextura(ctx => {
+      ctx.strokeStyle = "#2b1e18"; ctx.lineWidth = 6; ctx.lineJoin = "round";
+      p.formas.forEach(s => { if (!s.k) { trazo(ctx, s); ctx.stroke(); } });
+    }),
+    crearTextura(ctx => p.formas.forEach(s => { if (s.f) { ctx.fillStyle = s.f; trazo(ctx, s); ctx.fill(); } })),
+    crearTextura(ctx => { ctx.fillStyle = p.fondo; ctx.fillRect(0, 0, ancho, alto); })
+  ];
+}
+
+// Carga los SVG del cartel y los convierte en texturas (el último, el fondo, marca la proporción)
+// Busca el archivo junto al html y, si no está, dentro de una carpeta llamada SVG (o svg)
+async function buscarArchivo(src) {
+  const intentos = [], bajo = src.toLowerCase();
+  for (const ruta of [...new Set([src, "SVG/" + src, "svg/" + src, bajo, "SVG/" + bajo, "svg/" + bajo])]) {
+    try {
+      const r = await fetch(ruta);
+      if (r.ok) return r;
+      intentos.push(ruta + " → HTTP " + r.status);
+    } catch (e) { intentos.push(ruta + " → " + e.message); }
+  }
+  throw new Error("no se encontró. Probé: " + intentos.join(" | "));
+}
+async function cargarImagen(src, limpiar) {
+  let url = src, vbTxt = "", detalle = "";
+  // PNG, JPG, WebP: se cargan directo, sin el ajuste de tamaño que solo aplica a los SVG
+  if (!/\.svg(\?|#|$)/i.test(src)) {
+    let direct = src;
+    try {
+      const r = await buscarArchivo(src);
+      direct = URL.createObjectURL(await r.blob());
+    } catch (e) { /* si fetch no está disponible se intenta cargar directo */ }
+    return new Promise((ok, fallo) => {
+      const img = new Image();
+      img.onload = () => ok(img);
+      img.onerror = () => fallo(new Error("No se pudo abrir " + src + " (¿está en la misma carpeta que el html y con ese nombre exacto, incluidas mayúsculas?)"));
+      img.src = direct;
+    });
+  }
+  try {
+    // Se lee el SVG como texto para asegurarse de que tenga tamaño propio (a partir del viewBox)
+    const r = await buscarArchivo(src);
+    let txt = await r.text();
+    if (limpiar) txt = txt
+      .replace(/\s(?:fill-|stroke-)?opacity="[^"]*"/g, "")
+      .replace(/(?<![-\w])(?:fill-|stroke-)?opacity\s*:\s*[\d.]+%?\s*;?/g, "")
+      .replace(/mix-blend-mode\s*:\s*[\w-]+\s*;?/g, "");
+    const svg = new DOMParser().parseFromString(txt, "image/svg+xml").documentElement;
+    if (svg.nodeName.toLowerCase() === "svg") {
+      vbTxt = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(n => Math.round(Number(n))).join(" ");
+      const vb = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number);
+      const w = svg.getAttribute("width"), h = svg.getAttribute("height");
+      if (vb.length === 4 && vb[2] > 0 && vb[3] > 0 && (!w || !h || /%/.test(w + h))) {
+        svg.setAttribute("width", vb[2]); svg.setAttribute("height", vb[3]);
+      }
+      txt = new XMLSerializer().serializeToString(svg);
+    }
+    url = URL.createObjectURL(new Blob([txt], { type: "image/svg+xml" }));
+  } catch (e) { detalle = e.message; /* si fetch no está disponible (file://) se intenta cargar directo */ }
+  return new Promise((ok, fallo) => {
+    const img = new Image();
+    img.onload = () => { img.vbTxt = vbTxt; ok(img); };
+    img.onerror = () => fallo(new Error("No se pudo abrir " + src + " (¿está en la misma carpeta que el html y con ese nombre exacto?) " + detalle));
+    img.src = url;
+  });
+}
+async function cargarSvgs(c) {
+  try {
+    // Si un archivo falla, esa capa queda vacía (con aviso) y el resto del cartel se muestra igual
+    const imgs = await Promise.all(c.svg.map(s => cargarImagen(s, c.solido?.includes(s)).catch(e => { avisar(c.titulo + ": " + e.message); return null; })));
+    const cargadas = imgs.filter(Boolean);
+    if (!cargadas.length) throw new Error("no se pudo abrir ninguno de sus archivos");
+    const ref = imgs[imgs.length - 1] || cargadas[cargadas.length - 1];
+    c.aspecto = ref.naturalWidth && ref.naturalHeight ? ref.naturalWidth / ref.naturalHeight : 2;
+    const w = 2048, h = Math.round(w / c.aspecto);
+    imgs.forEach((img, i) => {
+      if (c.encajar) return; // al encajar no hace falta avisar de lienzos distintos
+      const a = img && img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 0;
+      const vbRef = ref.vbTxt;
+      if (img && img.vbTxt && vbRef && img.vbTxt !== vbRef) {
+        avisar(`${c.titulo}: ${c.svg[i]} tiene otro lienzo (viewBox ${img.vbTxt}) que ${c.svg[c.svg.length - 1]} (${vbRef}). Por eso no calza: expórtalos todos con el mismo tamaño de lienzo.`);
+      }
+      if (a && Math.abs(a / c.aspecto - 1) > 0.02) {
+        console.warn(c.svg[i], "proporción", a, "vs", c.aspecto);
+        avisar(`${c.titulo}: ${c.svg[i]} mide ${img.naturalWidth}×${img.naturalHeight} y no tiene la misma proporción que ${c.svg[c.svg.length - 1]}. Se estira y queda descalzado: expórtalo con el mismo tamaño de lienzo.`);
+      }
+    });
+    // Caja visible del fondo (para que el vidrio tenga su misma forma)
+    let cajaFondo = null;
+    const imgFondo = imgs[imgs.length - 1];
+    if (c.vidrioForma && imgFondo) {
+      const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      const cx = cv.getContext("2d"), m = c.margen ?? 1;
+      cx.drawImage(imgFondo, w * (1 - m) / 2, h * (1 - m) / 2, w * m, h * m);
+      const px = cx.getImageData(0, 0, w, h).data;
+      let x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2)
+        if (px[(y * w + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (x1 > x0 && y1 > y0) cajaFondo = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+    }
+    const tx = imgs.map((img, i) => crearTextura(ctx => {
+      const m = c.margen ?? 1;
+      if (img) {
+        let dw = w * m, dh = h * m;
+        if (c.encajar && i < imgs.length - 1 && img.naturalWidth && img.naturalHeight) {
+          const f = Math.min(dw / img.naturalWidth, dh / img.naturalHeight);
+          dw = img.naturalWidth * f; dh = img.naturalHeight * f;
+        }
+        ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      }
+      if (img && c.solido?.includes(c.svg[i])) { // refuerza lo semitransparente hasta dejarlo opaco
+        const dat = ctx.getImageData(0, 0, w, h), px = dat.data;
+        for (let j = 3; j < px.length; j += 4) if (px[j]) px[j] = Math.min(255, px[j] * 3);
+        ctx.putImageData(dat, 0, 0);
+      }
+      if (i === imgs.length - 1) { // fondo: se extiende su color hasta cubrir todo el vidrio (o su caja)
+        const d = ctx.getImageData(w >> 1, h >> 1, 1, 1).data;
+        ctx.globalCompositeOperation = "destination-over";
+        ctx.fillStyle = d[3] ? `rgb(${d[0]},${d[1]},${d[2]})` : (c.relleno || "#bf8ab8");
+        if (cajaFondo) ctx.fillRect(cajaFondo.x, cajaFondo.y, cajaFondo.w, cajaFondo.h);
+        else ctx.fillRect(0, 0, w, h);
+      }
+    }, w, h));
+    if (c.alinear) { // escala y centra una capa para que su contenido calce con el de otra
+      const caja = cv => {
+        const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+        let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+        for (let y = 0; y < cv.height; y += 2) for (let x = 0; x < cv.width; x += 2)
+          if (px[(y * cv.width + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        return x1 < 0 ? null : { x0, y0, x1, y1 };
+      };
+      for (const [a, v] of Object.entries(c.alinear)) {
+        const [b, extra = 0] = Array.isArray(v) ? v : [v];
+        const ia = c.svg.indexOf(a), ib = c.svg.indexOf(b);
+        if (ia < 0 || ib < 0) continue;
+        const cA = tx[ia].image, A = caja(cA), B0 = caja(tx[ib].image);
+        if (!A || !B0) continue;
+        const B = { x0: B0.x0, y0: B0.y0, x1: B0.x1 + extra * cA.width, y1: B0.y1 + extra * cA.width };
+        const sc = ((B.x1 - B.x0) / (A.x1 - A.x0) + (B.y1 - B.y0) / (A.y1 - A.y0)) / 2;
+        const tmp = document.createElement("canvas");
+        tmp.width = cA.width; tmp.height = cA.height;
+        const t = tmp.getContext("2d");
+        t.translate((B.x0 + B.x1) / 2, (B.y0 + B.y1) / 2); t.scale(sc, sc); t.translate(-(A.x0 + A.x1) / 2, -(A.y0 + A.y1) / 2);
+        t.drawImage(cA, 0, 0);
+        const cx = cA.getContext("2d");
+        cx.clearRect(0, 0, cA.width, cA.height); cx.drawImage(tmp, 0, 0);
+        tx[ia].needsUpdate = true;
+      }
+    }
+    imgs.forEach((img, i) => { // avisa si un archivo se abrió pero no tiene nada visible
+      if (!img || i === imgs.length - 1) return;
+      const cv = tx[i].image, d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+      let hay = false;
+      for (let j = 3; j < d.length; j += 64) if (d[j] > 0) { hay = true; break; }
+      if (!hay) avisar(`${c.titulo}: ${c.svg[i]} se abrió pero se ve vacío (todo transparente). Revisa que el archivo tenga formas visibles.`);
+    });
+    tx.forEach(t => t.image.getContext("2d").getImageData(0, 0, 1, 1)); // falla si el navegador bloquea algún lienzo
+    c.tx = [crearVidrio(w, h, cajaFondo), ...tx];
+  } catch (e) {
+    console.warn(c.titulo + ": se usa el diseño de respaldo.", e);
+    c.svg = null;
+    c.tx = null;
+    c.orden = null;
+    avisar(e.name === "SecurityError"
+      ? "El navegador bloquea los SVG al abrir el html con doble clic (file://). Ábrelo desde un servidor local o desde tu hosting."
+      : c.titulo + ": " + e.message);
+  }
+}
+
+// Miniatura = todas las capas apiladas, vistas de frente
+function miniatura(tx) {
+  const W = 1800, H = 1350; // alta resolución para que se vea nítida en tablets con pantalla retina
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = "high";
+  x.fillStyle = "#1c1d1e"; x.fillRect(0, 0, W, H);
+  const im = tx[tx.length - 1].image, k = Math.min(W / im.width, H / im.height);
+  const w = im.width * k, h = im.height * k;
+  for (let i = tx.length - 1; i >= 1; i--) x.drawImage(tx[i].image, (W - w) / 2, (H - h) / 2, w, h);
+  return c.toDataURL("image/jpeg", 0.95);
+}
+
+const tactil = matchMedia("(hover: none)");
+const cerrarInfo = () => galeria.querySelectorAll(".cartel.activo").forEach(x => x.classList.remove("activo"));
+inicio.addEventListener("click", e => { if (!e.target.closest(".cartel")) cerrarInfo(); });
+await Promise.all([cargarSvgs(carteles[0]), cargarSvgs(carteles[1]), cargarSvgs(carteles[2])]);
+galeria.textContent = "";
+carteles.forEach((c, i) => {
+  c.tx = c.tx || capasDe(c);
+  let mini;
+  try { mini = miniatura(c.tx); }
+  catch (e) { // si la miniatura falla, se usa el diseño de respaldo y los demás carteles siguen apareciendo
+    console.warn(c.titulo + ": no se pudo crear la miniatura.", e);
+    avisar(c.titulo + ": " + (e.name === "SecurityError" ? "el navegador bloquea alguna imagen (¿abriste el html con doble clic?)." : e.message));
+    c.svg = null; c.orden = null; c.aspecto = null;
+    c.tx = capasDe(c);
+    mini = miniatura(c.tx);
+  }
+  const el = document.createElement("article");
+  el.className = "cartel";
+  el.tabIndex = 0;
+  el.setAttribute("role", "button");
+  el.setAttribute("aria-label", `Diseño de cartel ${i + 1}. ${c.texto}`);
+  el.innerHTML = `<img src="${mini}" alt="" draggable="false">
+    <div class="info"><h3>${c.titulo}</h3><p>${c.texto}</p><span>Clic para entrar →</span><button class="entrar" type="button">Entrar a la obra →</button></div>`;
+  el.addEventListener("click", e => {
+    // Táctil: el 1er toque muestra la info y el botón "Entrar" abre la obra. Mouse: clic entra directo.
+    if (!tactil.matches || e.target.closest(".entrar")) return elegir(i);
+    const abierto = el.classList.contains("activo");
+    cerrarInfo();
+    if (!abierto) el.classList.add("activo");
+  });
+  el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(i); } });
+  galeria.appendChild(el);
+});
+
+// ---------- Carrusel: un cartel a la vez ----------
+const prevCartel = document.getElementById("prevCartel");
+const nextCartel = document.getElementById("nextCartel");
+const puntos = document.getElementById("puntos");
+let cartelActual = 0;
+const irA = i => {
+  i = Math.max(0, Math.min(carteles.length - 1, i));
+  galeria.children[i].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+};
+carteles.forEach((c, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "punto";
+  b.setAttribute("aria-label", `Ir al cartel ${i + 1}`);
+  b.addEventListener("click", () => irA(i));
+  puntos.appendChild(b);
+});
+function marcarCartel() {
+  const centro = galeria.scrollLeft + galeria.clientWidth / 2;
+  let mejor = 0, dist = Infinity;
+  [...galeria.children].forEach((el, k) => {
+    const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - centro);
+    if (d < dist) { dist = d; mejor = k; }
+  });
+  if (mejor !== cartelActual) cerrarInfo(); // al cambiar de cartel se cierra la info abierta
+  cartelActual = mejor;
+  [...puntos.children].forEach((p, k) => p.classList.toggle("on", k === mejor));
+  prevCartel.disabled = mejor === 0;
+  nextCartel.disabled = mejor === carteles.length - 1;
+}
+galeria.addEventListener("scroll", marcarCartel, { passive: true });
+prevCartel.addEventListener("click", () => irA(cartelActual - 1));
+nextCartel.addEventListener("click", () => irA(cartelActual + 1));
+document.addEventListener("keydown", e => {
+  if (inicio.classList.contains("oculto")) return;
+  if (e.key === "ArrowLeft") irA(cartelActual - 1);
+  if (e.key === "ArrowRight") irA(cartelActual + 1);
+});
+marcarCartel();
+
+const definiciones = [
+  { nombre: "El vidrio", descripcion: "Soporte transparente con reflejos sutiles. Se trabaja por detrás partiendo en modo espejo." },
+  { nombre: "El dorado", descripcion: "Pan de oro y rotulación. Observa cómo los textos se ven al revés." },
+  { nombre: "Los contornos", descripcion: "Líneas de ajuste y detalles que estructuran la composición." },
+  { nombre: "La pintura", descripcion: "Áreas de color que completan la ilustración principal sobre el vidrio." },
+  { nombre: "Color de fondo", descripcion: "Capa final de sellado que cierra y hace contrastar la obra." }
+];
+
+// Se crean 7 planos: es el máximo de capas que usa un cartel (cada cartel usa solo las que necesita)
+const MAX_CAPAS = 7;
+const capas = [];
+Array.from({ length: MAX_CAPAS }, (_, i) => i).forEach(i => {
+  const material = new THREE.MeshBasicMaterial({
+    map: carteles[0].tx[i], transparent: true, side: THREE.DoubleSide,
+    depthWrite: i !== 0, depthTest: true, alphaTest: 0.02, blending: THREE.NormalBlending
+  });
+  const plano = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 4.125), material);
+  plano.position.z = (2 - i) * 0.003; // juntas: casi planas, como un vidrio pintado por detrás
+  plano.userData.indexOriginal = i;
+  plano.userData.zJunta = plano.position.z;
+  plano.userData.zSeparada = (2 - i) * 0.9; // separadas: simétricas respecto al centro (pivote único)
+  plano.visible = i === 0;
+  grupoObra.add(plano);
+  capas.push(plano);
+});
+
+let nCapas = 5, paso = 0, capasSeparadas = false, anguloObjetivo = Math.PI, reverso = true;
+
+const contador = document.getElementById("contador");
+const titulo = document.getElementById("tituloCapa");
+const descripcion = document.getElementById("descripcion");
+const barra = document.getElementById("barra");
+const botonSiguiente = document.getElementById("siguiente");
+const botonVoltear = document.getElementById("voltear");
+const botonSeparar = document.getElementById("separar");
+const botonReiniciar = document.getElementById("reiniciar");
+const botonCarteles = document.getElementById("carteles");
+const botonCentrar = document.getElementById("centrar");
+
+// Viñeta derecha: pequeña al inicio, se expande y se contrae al tocarla
+const infoDer = document.getElementById("infoDer");
+const infoTab = document.getElementById("infoTab");
+
+// Texto de la viñeta derecha según la capa actual (mismo orden que las capas de la obra)
+const infoKicker = document.getElementById("infoKicker");
+const infoTitulo = document.getElementById("infoTitulo");
+const infoTexto = document.getElementById("infoTexto");
+const infoCapas = [
+  { nombre: 'Vidrio', parrafos: [
+    'El vidrio es el soporte transparente que protege la imagen y permite observar todas las capas desde el otro lado. A diferencia de un lienzo, no absorbe la pintura de la misma manera y obliga a trabajar sobre una superficie lisa y poco porosa.',
+    'La superficie frontal queda lisa y permite ver las capas que se encuentran debajo, además de protegerlas del contacto directo. Si la imagen contiene letras, palabras o una composición asimétrica, normalmente hay que preparar el diseño en espejo para que se lea correctamente desde el frente.'
+  ] },
+  { nombre: 'Oro', parrafos: [
+    'Las láminas de oro, también llamadas hojas de oro, son láminas metálicas extremadamente delgadas. Se utilizan porque permiten cubrir una superficie con un brillo metálico que la pintura dorada convencional no reproduce de la misma manera.',
+    'El tiempo de espera depende del adhesivo y de las condiciones ambientales. En el dorado con gelatina, la hoja se fija al secarse la solución; otros adhesivos tienen procedimientos y tiempos distintos.',
+    'También es importante considerar que el oro no siempre queda como un espejo perfecto, las uniones entre hojas, las pequeñas irregularidades y la manera de colocarlas pueden generar variaciones visuales. Estas marcas pueden aprovecharse como parte de la estética de la pieza.',
+    'La aplicación del oro comienza con la limpieza del vidrio y la aplicación de una capa fina de adhesivo compatible con la técnica. Luego, se colocan cuidadosamente las láminas de oro sobre la superficie, procurando cubrir las zonas deseadas sin dejar huecos ni arrugas. Una vez que el adhesivo ha actuado y el oro está fijado, se retira suavemente el exceso con un pincel blando.'
+  ] },
+  { nombre: 'Contornos', parrafos: [
+    'Los contornos pueden contrastar con el oro y definir sus límites, haciendo que las formas metálicas se vean más nítidas. Sin embargo, si se desea que el borde negro quede perfectamente visible junto al oro, hay que planificar la superposición de ambas capas: según el procedimiento, el contorno puede pintarse antes o después del dorado.'
+  ] },
+  { nombre: 'Pinturas', parrafos: [
+    'Los detalles en pintura son los elementos que se encuentran dentro de las formas delimitadas por los contornos. No sirven principalmente para definir el borde, sino para aportar información visual, como sombras, luces, texturas, pliegues, pequeñas líneas y variaciones de color.',
+    'Al trabajar sobre vidrio, las pinceladas permanecen en la superficie y pueden verse a través del material. La pintura debe tener una consistencia que permita realizar trazos controlados sin acumularse ni extenderse fuera de la zona deseada.',
+    'Además, al trabajar por el reverso, hay que considerar que los detalles se observan a través del vidrio. Esto puede modificar ligeramente su apariencia y obliga a pensar en cómo se verá el color desde el frente.'
+  ] },
+  { nombre: 'Fondo y pegamento', parrafos: [
+    'El fondo se trabaja al final porque se encuentra detrás de los contornos, los detalles y el oro cuando miramos la obra desde el frente. Su función es dar contraste, completar las áreas vacías y, en algunos casos, proteger las capas metálicas.',
+    'En ciertas variantes de verre églomisé, el fondo también cumple una función protectora: ayuda a resguardar la hoja metálica y a mantener el efecto visual.'
+  ] }
+];
+// Videos sin sonido, en la misma carpeta que el html. Capas: 0 vidrio, 1 oro, 2 contornos, 3 pinturas, 4 fondo
+const videosCapa = { 1: 'oro.mp4', 2: 'contorno.mp4', 4: 'fondo.mp4' };
+
+// Secciones reutilizables: un cartel con "orden" arma sus pasos a partir de estas secciones
+const SECCIONES = {
+  vidrio: { def: definiciones[0], info: infoCapas[0] },
+  oro: { def: definiciones[1], info: infoCapas[1], video: 'oro.mp4' },
+  blancos: {
+    def: { nombre: "Los blancos", descripcion: "El blanco rellena zonas del diseño y sirve de base luminosa. Queda por delante de la pintura, por eso se aplica antes que ella." },
+    info: { nombre: "Blancos", parrafos: ["El blanco cubre las zonas que necesitan una base luminosa para los detalles. Al mirar la obra desde el frente queda por delante de la pintura, por eso se aplica antes que ella."] }
+  },
+  contornos: { def: definiciones[2], info: infoCapas[2], video: 'contorno.mp4' },
+  pintura: { def: definiciones[3], info: infoCapas[3] },
+  fondo: { def: definiciones[4], info: infoCapas[4], video: 'fondo.mp4' }
+};
+// Reparte los planos según las capas del cartel elegido (juntos y separados, siempre centrados)
+function ubicarCapas(n) {
+  nCapas = n;
+  const sep = 3.6 / (n - 1);
+  capas.forEach((capa, i) => {
+    capa.userData.zJunta = ((n - 1) / 2 - i) * 0.003;
+    capa.userData.zSeparada = ((n - 1) / 2 - i) * sep;
+  });
+}
+
+// Textos y videos activos (cada cartel puede reemplazar los suyos)
+let defs = definiciones, infos = infoCapas, vids = videosCapa;
+const infoVideo = document.createElement('video');
+infoVideo.className = 'vid';
+infoVideo.muted = true; infoVideo.defaultMuted = true; infoVideo.loop = true; infoVideo.playsInline = true;
+infoVideo.preload = 'auto'; infoVideo.hidden = true;
+infoVideo.setAttribute('muted', ''); infoVideo.setAttribute('playsinline', '');
+infoDer.querySelector('.texto').after(infoVideo);
+// Si el archivo no está junto al html, el video se oculta en vez de mostrar un recuadro roto
+infoVideo.addEventListener('error', () => {
+  infoVideo.dataset.falla = infoVideo.getAttribute('src');
+  infoVideo.hidden = true;
+  infoDer.classList.remove('con-video');
+});
+function reproducirVideo(abierta) {
+  if (abierta && !infoVideo.hidden) infoVideo.play().catch(() => {});
+  else infoVideo.pause();
+}
+function pintarInfo() {
+  const d = infos[paso];
+  infoKicker.textContent = `Capa ${paso + 1} de ${infos.length}`;
+  infoTitulo.textContent = d.nombre;
+  infoTexto.replaceChildren(...d.parrafos.map(t => { const p = document.createElement('p'); p.textContent = t; return p; }));
+  infoDer.querySelector('.texto').scrollTop = 0;
+  const v = vids[paso];
+  if (v && infoVideo.dataset.falla !== v) {
+    if (infoVideo.getAttribute('src') !== v) infoVideo.src = v;
+    infoVideo.hidden = false;
+    infoDer.classList.add('con-video');
+  } else {
+    infoVideo.hidden = true;
+    infoDer.classList.remove('con-video');
+  }
+  reproducirVideo(infoDer.classList.contains('abierto'));
+}
+infoTab.addEventListener("click", () => {
+  const abierta = infoDer.classList.toggle("abierto");
+  infoTab.setAttribute("aria-expanded", String(abierta));
+  infoTab.querySelector(".mas").textContent = abierta ? "−" : "+";
+  reproducirVideo(abierta);
+});
+
+function actualizarInterfaz() {
+  document.querySelector(".progreso").style.setProperty("--n", defs.length);
+  const actual = defs[paso];
+  contador.textContent = `Capa ${paso + 1} de ${defs.length}`;
+  titulo.textContent = actual.nombre;
+  descripcion.textContent = actual.descripcion;
+  barra.style.width = `${((paso + 1) / defs.length) * 100}%`;
+  botonSiguiente.disabled = paso === defs.length - 1;
+  botonSiguiente.textContent = paso === defs.length - 1 ? "Obra completada ✓" : "Incorporar siguiente capa →";
+  pintarInfo();
+}
+
+function reiniciar() {
+  paso = 0; capasSeparadas = false; anguloObjetivo = Math.PI; reverso = true; botonVoltear.textContent = "Ver el frente";
+  grupoObra.rotation.y = Math.PI;
+  capas.forEach((capa, i) => { capa.visible = i === 0; capa.position.z = capa.userData.zJunta; });
+  botonSeparar.textContent = "Separar capas 3D";
+  actualizarInterfaz();
+  camara.position.set(0, 0, DIST);
+  controles.target.set(0, 0, 0);
+  controles.update();
+}
+
+function elegir(i) {
+  const c = carteles[i];
+  if (c.orden && c.svg) {
+    defs = c.orden.map(k => SECCIONES[k].def);
+    infos = c.orden.map(k => SECCIONES[k].info);
+    vids = {};
+    c.orden.forEach((k, j) => { if (SECCIONES[k].video) vids[j] = SECCIONES[k].video; });
+  } else {
+    defs = definiciones.map((d, k) => c.definiciones?.[k] ?? d);
+    infos = infoCapas.map((d, k) => c.info?.[k] ?? d);
+    vids = c.videos ?? videosCapa;
+  }
+  const n = c.tx.length;
+  ubicarCapas(n);
+  // El diseño se ajusta para caber en el marco de 5.5 x 4.125 (si es más alto que ancho se limita por el alto)
+  let sx = 1, sy = 1;
+  if (c.aspecto && c.svg) { if (c.aspecto >= 4 / 3 || !c.ajustar) sy = (5.5 / c.aspecto) / 4.125; else sx = (4.125 * c.aspecto) / 5.5; }
+  const tam = c.escala ?? 1; // tamaño extra por cartel (1 = completo, 0.8 = más chico)
+  capas.forEach((capa, k) => {
+    if (k < n) { capa.material.map = c.tx[k]; capa.material.needsUpdate = true; }
+    const ev = k === 0 ? (c.vidrioEscala ?? 1) : 1; // el vidrio puede ser un poco más grande que el resto
+    capa.scale.set(sx * tam * ev, sy * tam * ev, 1);
+  });
+  reiniciar();
+  panel.hidden = false;
+  inicio.classList.add("oculto");
+}
+
+botonCarteles.addEventListener("click", () => {
+  panel.hidden = true;
+  infoVideo.pause();
+  cerrarInfo();
+  inicio.classList.remove("oculto");
+});
+botonSiguiente.addEventListener("click", () => {
+  if (paso < defs.length - 1) { paso++; capas[paso].visible = true; actualizarInterfaz(); }
+});
+// Gira la obra al frente (rev=false) o al reverso (rev=true) por el camino más corto
+function girarA(rev) {
+  reverso = rev;
+  const meta = rev ? Math.PI : 0, act = grupoObra.rotation.y;
+  anguloObjetivo = act + (THREE.MathUtils.euclideanModulo(meta - act + Math.PI, 2 * Math.PI) - Math.PI);
+  botonVoltear.textContent = rev ? "Ver el frente" : "Ver el reverso";
+}
+botonVoltear.addEventListener("click", () => { girarA(!reverso); centrando = true; });
+botonSeparar.addEventListener("click", () => {
+  capasSeparadas = !capasSeparadas;
+  botonSeparar.textContent = capasSeparadas ? "Juntar capas 3D" : "Separar capas 3D";
+});
+botonReiniciar.addEventListener("click", reiniciar);
+
+// Doble toque / doble clic sobre la obra: centra el cartel (igual que "Centrar vista")
+let tapInicio = null, ultimoTap = null;
+const activos = new Set(); // punteros apoyados: con dos dedos no cuenta como toque
+const lienzoObra = renderizador.domElement;
+lienzoObra.addEventListener("pointerdown", e => {
+  activos.add(e.pointerId);
+  if (activos.size > 1) { tapInicio = null; ultimoTap = null; return; }
+  tapInicio = { x: e.clientX, y: e.clientY, t: performance.now() };
+});
+lienzoObra.addEventListener("pointercancel", e => { activos.delete(e.pointerId); tapInicio = null; });
+lienzoObra.addEventListener("pointerup", e => {
+  activos.delete(e.pointerId);
+  if (!tapInicio || panel.hidden) return;
+  const ahora = performance.now();
+  const movio = Math.hypot(e.clientX - tapInicio.x, e.clientY - tapInicio.y) > 10;
+  const largo = ahora - tapInicio.t > 300;
+  tapInicio = null;
+  if (movio || largo) { ultimoTap = null; return; } // fue un arrastre, no un toque
+  if (ultimoTap && ahora - ultimoTap.t < 350 && Math.hypot(e.clientX - ultimoTap.x, e.clientY - ultimoTap.y) < 30) {
+    ultimoTap = null;
+    girarA(false); centrando = true;
+  } else {
+    ultimoTap = { x: e.clientX, y: e.clientY, t: ahora };
+  }
+});
+
+// Centrar: vuelve suavemente a la vista frontal, a la distancia inicial, mirando al centro de la obra
+const esf = new THREE.Spherical(), vec = new THREE.Vector3();
+botonCentrar.addEventListener("click", () => { girarA(false); centrando = true; });
+function pasoCentrar() {
+  controles.target.multiplyScalar(0.88); // vuelve el cartel al centro de la pantalla
+  esf.setFromVector3(vec.copy(camara.position).sub(controles.target));
+  const dt = THREE.MathUtils.euclideanModulo(-esf.theta + Math.PI, 2 * Math.PI) - Math.PI;
+  esf.radius += (DIST - esf.radius) * 0.12;
+  esf.phi += (Math.PI / 2 - esf.phi) * 0.12;
+  esf.theta += dt * 0.12;
+  camara.position.setFromSpherical(esf).add(controles.target);
+  if (Math.abs(dt) < 0.002 && Math.abs(esf.radius - DIST) < 0.01 && Math.abs(esf.phi - Math.PI / 2) < 0.002 && controles.target.length() < 0.002) {
+    controles.target.set(0, 0, 0);
+    camara.position.set(0, 0, DIST);
+    centrando = false;
+  }
+}
+
+window.addEventListener("resize", () => {
+  camara.aspect = window.innerWidth / window.innerHeight;
+  camara.updateProjectionMatrix();
+  renderizador.setSize(window.innerWidth, window.innerHeight);
+});
+
+actualizarInterfaz();
+
+renderizador.setAnimationLoop(() => {
+  // Con la obra completa y acoplada, el vidrio se desvanece para que solo se vea la ilustración
+  const matVidrio = capas[0].material;
+  const ocultarVidrio = paso === nCapas - 1 && !capasSeparadas;
+  matVidrio.opacity += ((ocultarVidrio ? 0 : 1) - matVidrio.opacity) * 0.08;
+  capas[0].visible = matVidrio.opacity > 0.01;
+  capas.forEach(capa => {
+    const objetivoZ = capasSeparadas ? capa.userData.zSeparada : capa.userData.zJunta;
+    capa.position.z += (objetivoZ - capa.position.z) * 0.08;
+    const rotY = grupoObra.rotation.y % (Math.PI * 2);
+    capa.renderOrder = (Math.abs(rotY) > Math.PI / 2 && Math.abs(rotY) < Math.PI * 1.5)
+      ? (nCapas - 1) - capa.userData.indexOriginal
+      : capa.userData.indexOriginal;
+  });
+  grupoObra.rotation.y += (anguloObjetivo - grupoObra.rotation.y) * 0.08;
+  if (centrando) pasoCentrar();
+  controles.update();
+  if (controles.target.length() > 4) { // límite del movimiento: el cartel no se puede sacar de la pantalla
+    const ajuste = controles.target.clone().setLength(4).sub(controles.target);
+    controles.target.add(ajuste); camara.position.add(ajuste);
+  }
+  renderizador.render(escena, camara);
+});
+</script>
+</body>
+</html>
