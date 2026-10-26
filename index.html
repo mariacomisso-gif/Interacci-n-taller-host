@@ -466,7 +466,21 @@ const carteles = [
     etapas: [[0], [1], [2], [3], [4, 5]],
     // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [{ t: "r", x: 100, y: 280, w: 824, h: 210, f: "#141e1d" }],
-    oro: [{ txt: "EL CACHAFAZ", x: 512, y: 410, font: "64px Rye", al: "center" }] }
+    oro: [{ txt: "EL CACHAFAZ", x: 512, y: 410, font: "64px Rye", al: "center" }] },
+  { titulo: "El Bar de Julio",
+    texto: "El Bar de Julio es un clásico café, bodegón y bar de tango tradicional situado en el centro de Buenos Aires (Av. Roque Sáenz Peña 1125), justo frente al Obelisco. Es conocido por conservar la esencia del antiguo bar porteño, ofrecer comida casera argentina y presentar shows y música de tango en vivo.",
+    fondo: "#000000",
+    // Los cinco SVG comparten lienzo (una hoja A4) pero el fondo negro ocupa solo un rectángulo: se recorta a [x, y, ancho, alto] para que el diseño llene el vidrio
+    recorte: [118.49, 96.24, 940.92, 649.02],
+    // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
+    svg: ["barpintura.svg", "baroro1.svg", "baroro2.svg", "barblanco.svg", "barfondo.svg"],
+    // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
+    orden: ["vidrio", "perlas", "orobar", "blancobar", "fondo"],
+    // Las dos capas de oro (cara clara y sombra con volumen) entran juntas, pero siguen siendo planos distintos al separar las capas 3D
+    etapas: [[0], [1], [2, 3], [4], [5]],
+    // Diseño de respaldo (se usa solo si los SVG no cargan)
+    formas: [],
+    oro: [{ txt: "EL BAR DE JULIO", x: 512, y: 410, font: "64px Rye", al: "center" }] }
 ];
 
 function trazo(ctx, s) {
@@ -874,6 +888,30 @@ const SECCIONES = {
   letras: {
     def: { nombre: "Las letras blancas", descripcion: "El blanco completa las letras por detrás del rojo y las hace destacar sobre el fondo oscuro." },
     info: { nombre: "Letras blancas", parrafos: ["El blanco completa las letras por detrás del rojo. Su tono claro las hace resaltar sobre la capa oscura que las rodea."] }
+  },
+  // Secciones del cartel de El Bar de Julio
+  perlas: {
+    def: { nombre: "Las perlas azules", descripcion: "Pequeñas gotas de pintura azul que se aplican primero. Quedan por delante del oro, como destellos sobre las letras." },
+    info: { nombre: "Perlas azules", parrafos: [
+      "En el églomisé se trabaja por el reverso del vidrio, así que lo que se ve primero desde el frente se pinta primero. Por eso estas perlas azules son lo primero que se aplica: al mirar la obra de frente quedan por delante del oro.",
+      "Cada perla es una pequeña gota de pintura con un punto de luz. Sirve de joya o remache sobre las letras y rompe el dorado con un toque de color frío."
+    ] }
+  },
+  orobar: {
+    def: { nombre: "El oro", descripcion: "Dos capas doradas: la cara clara de las letras y la sombra con volumen que les da relieve. Quedan por detrás de las perlas." },
+    info: { nombre: "Oro", parrafos: [
+      infoCapas[1].parrafos[0],
+      "En este cartel el oro se trabaja en dos tonos: un dorado claro para la cara de las letras y un dorado oscuro, más profundo, para la sombra que las extruye hacia abajo y a la izquierda. Juntos dan la ilusión de letras con volumen, talladas en metal.",
+      infoCapas[1].parrafos[3]
+    ], },
+    video: 'oro.mp4'
+  },
+  blancobar: {
+    def: { nombre: "El blanco", descripcion: "El blanco rellena las letras por detrás del oro y les da una base luminosa sobre el fondo negro." },
+    info: { nombre: "Blanco", parrafos: [
+      "El blanco cubre la silueta de las letras y sirve de base luminosa. Al mirar la obra desde el frente queda por detrás del oro y de las perlas, por eso se aplica después que ellos.",
+      "Sin esta capa, el negro del fondo se vería a través de las zonas finas del oro y las letras perderían brillo."
+    ] }
   }
 };
 // Reparte los planos según las capas del cartel elegido (juntos y separados, siempre centrados)
