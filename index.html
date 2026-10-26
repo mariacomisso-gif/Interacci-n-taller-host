@@ -461,7 +461,7 @@ const carteles = [
     // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
     svg: ["orocar.svg", "letracar2.svg", "letrcar.svg", "selladocar.svg", "fondocar.svg"],
     // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
-    orden: ["vidrio", "oro", "rojo", "letras", "fondo"],
+    orden: ["vidrio", "oro", "pintura", "blancos", "fondo"], // el rojo usa la sección "pintura" y el blanco la sección "blancos"
     // El sellado y el fondo entran juntos en la última etapa, pero siguen siendo planos distintos al separar las capas 3D
     etapas: [[0], [1], [2], [3], [4, 5]],
     // Diseño de respaldo (se usa solo si los SVG no cargan)
@@ -865,16 +865,7 @@ const SECCIONES = {
   },
   contornos: { def: definiciones[2], info: infoCapas[2], video: 'contorno.mp4' },
   pintura: { def: definiciones[3], info: infoCapas[3] },
-  fondo: { def: definiciones[4], info: infoCapas[4], video: 'fondo.mp4' },
-  // Secciones del cartel de El Cachafaz (el rojo va por delante del blanco, por eso se aplica antes)
-  rojo: {
-    def: { nombre: "Las letras rojas", descripcion: "El rojo cubre la parte superior de las letras. Queda por delante del blanco, por eso se aplica antes que él." },
-    info: { nombre: "Letras rojas", parrafos: ["El rojo se aplica por el reverso del vidrio sobre la parte superior de las letras. Al mirar la obra desde el frente queda por delante del blanco, por eso se pinta antes que él."] }
-  },
-  letras: {
-    def: { nombre: "Las letras blancas", descripcion: "El blanco completa las letras por detrás del rojo y las hace destacar sobre el fondo oscuro." },
-    info: { nombre: "Letras blancas", parrafos: ["El blanco completa las letras por detrás del rojo. Su tono claro las hace resaltar sobre la capa oscura que las rodea."] }
-  }
+  fondo: { def: definiciones[4], info: infoCapas[4], video: 'fondo.mp4' }
 };
 // Reparte los planos según las capas del cartel elegido (juntos y separados, siempre centrados)
 function ubicarCapas(n) {
