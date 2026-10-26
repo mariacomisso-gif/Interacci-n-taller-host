@@ -411,12 +411,12 @@ const carteles = [
     vidrioForma: true, // el vidrio toma la forma (caja visible) del fondo
     vidrioEscala: 1.12, // tamaño extra solo del vidrio (1 = igual que las demás capas; sube o baja el número para ajustarlo)
     // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
-    svg: ["oro2.svg", "blancos2.svg", "rojo.svg", "contorno2.svg", "verdes.svg", "fondo2.svg"],
+    svg: ["oro2.svg", "blancos2.svg", "contorno2.svg", "rojo.svg", "verdes.svg", "fondo2.svg"], // las letras negras (contorno2) van después de los blancos y antes de la pintura
     solido: ["oro2.svg"], // el oro se muestra 100% opaco (se quitan opacidades y mezclas del SVG)
     // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
-    orden: ["vidrio", "oro", "blancos", "pintura", "contornos", "fondo"],
-    // Capas (por posición en "svg", con el vidrio = 0) que aparecen en cada etapa: rojo (3) y verdes (5) entran juntos en la pintura, pero siguen siendo planos distintos al separar las capas 3D
-    etapas: [[0], [1], [2], [3, 5], [4], [6]],
+    orden: ["vidrio", "oro", "blancos", "contornos", "pintura", "fondo"],
+    // Capas (por posición en "svg", con el vidrio = 0) que aparecen en cada etapa: rojo (4) y verdes (5) entran juntos en la pintura, pero siguen siendo planos distintos al separar las capas 3D
+    etapas: [[0], [1], [2], [3], [4, 5], [6]],
     // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [
       { t: "c", x: 512, y: 470, r: 150, a0: P, a1: 2 * P, f: "#d9472b" },
@@ -1088,11 +1088,9 @@ window.addEventListener("resize", () => {
 actualizarInterfaz();
 
 renderizador.setAnimationLoop(() => {
-  // Con la obra completa y acoplada, el vidrio se desvanece para que solo se vea la ilustración
-  const matVidrio = capas[0].material;
-  const ocultarVidrio = paso === defs.length - 1 && !capasSeparadas;
-  matVidrio.opacity += ((ocultarVidrio ? 0 : 1) - matVidrio.opacity) * 0.08;
-  capas[0].visible = matVidrio.opacity > 0.01;
+  // La textura de cristal siempre se mantiene visible (también con la obra completa y acoplada)
+  capas[0].material.opacity = 1;
+  capas[0].visible = true;
   capas.forEach(capa => {
     const objetivoZ = capasSeparadas ? capa.userData.zSeparada : capa.userData.zJunta;
     capa.position.z += (objetivoZ - capa.position.z) * 0.08;
