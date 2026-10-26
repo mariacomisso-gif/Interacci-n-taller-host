@@ -298,11 +298,24 @@ controles.enableDamping = true;
 controles.dampingFactor = 0.06;
 controles.minDistance = 2.5;
 controles.maxDistance = 20;
-controles.enablePan = true; // dos dedos (o clic derecho) mueven el cartel; el doble toque (o doble clic) o "Ver el frente/reverso" lo devuelven al centro
-controles.screenSpacePanning = true;
-controles.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }; // un dedo gira, dos dedos mueven y hacen zoom
+controles.enablePan = false; // el traslado se hace aparte (ver "desplazo"): así el pivote de giro y de zoom NUNCA sale del centro de la pieza
+controles.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }; // un dedo gira, dos dedos hacen zoom (y mueven la pieza, ver más abajo)
 controles.target.set(0, 0, 0);
 let centrando = false;
+// Traslado de la pieza en pantalla (en píxeles). Se aplica desplazando la imagen de la cámara, no la cámara ni el pivote:
+// la pieza se ve movida, pero gira y hace zoom siempre alrededor de su propio centro.
+let desplazoX = 0, desplazoY = 0, vistaAplicada = "";
+function aplicarDesplazo() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const lx = W * 0.45, ly = H * 0.45; // límite: la pieza no se puede sacar de la pantalla
+  desplazoX = Math.max(-lx, Math.min(lx, desplazoX));
+  desplazoY = Math.max(-ly, Math.min(ly, desplazoY));
+  const clave = `${W}|${H}|${desplazoX.toFixed(2)}|${desplazoY.toFixed(2)}`;
+  if (clave === vistaAplicada) return;
+  vistaAplicada = clave;
+  if (Math.abs(desplazoX) < 0.01 && Math.abs(desplazoY) < 0.01) camara.clearViewOffset();
+  else camara.setViewOffset(W, H, -desplazoX, -desplazoY, W, H);
+}
 controles.addEventListener("start", () => { centrando = false; });
 
 const grupoObra = new THREE.Group();
@@ -933,6 +946,7 @@ function reiniciar() {
   actualizarInterfaz();
   camara.position.set(0, 0, DIST);
   controles.target.set(0, 0, 0);
+  desplazoX = 0; desplazoY = 0;
   controles.update();
 }
 
@@ -997,6 +1011,31 @@ botonReiniciar.addEventListener("click", reiniciar);
 let tapInicio = null, ultimoTap = null;
 const activos = new Set(); // punteros apoyados: con dos dedos no cuenta como toque
 const lienzoObra = renderizador.domElement;
+// Traslado: dos dedos mueven la pieza siguiendo el punto medio; con mouse, arrastrar con el botón derecho
+const dedos = new Map();
+let medioAnterior = null, derechoAnterior = null;
+lienzoObra.addEventListener("contextmenu", e => e.preventDefault());
+lienzoObra.addEventListener("pointerdown", e => {
+  if (e.pointerType === "touch") { dedos.set(e.pointerId, { x: e.clientX, y: e.clientY }); medioAnterior = null; }
+  else if (e.button === 2) { derechoAnterior = { x: e.clientX, y: e.clientY }; centrando = false; }
+});
+lienzoObra.addEventListener("pointermove", e => {
+  if (e.pointerType === "touch" && dedos.has(e.pointerId)) {
+    dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (dedos.size === 2) {
+      const [a, b] = [...dedos.values()];
+      const medio = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      if (medioAnterior) { desplazoX += medio.x - medioAnterior.x; desplazoY += medio.y - medioAnterior.y; centrando = false; }
+      medioAnterior = medio;
+    }
+  } else if (derechoAnterior && (e.buttons & 2)) {
+    desplazoX += e.clientX - derechoAnterior.x; desplazoY += e.clientY - derechoAnterior.y; centrando = false;
+    derechoAnterior = { x: e.clientX, y: e.clientY };
+  }
+});
+const soltarDedo = e => { dedos.delete(e.pointerId); medioAnterior = null; if (e.button === 2 || e.type === "pointercancel") derechoAnterior = null; };
+lienzoObra.addEventListener("pointerup", soltarDedo);
+lienzoObra.addEventListener("pointercancel", soltarDedo);
 lienzoObra.addEventListener("pointerdown", e => {
   activos.add(e.pointerId);
   if (activos.size > 1) { tapInicio = null; ultimoTap = null; return; }
@@ -1022,14 +1061,15 @@ lienzoObra.addEventListener("pointerup", e => {
 // Centrado: vuelve suavemente a la vista frontal, a la distancia inicial, mirando al centro de la obra
 const esf = new THREE.Spherical(), vec = new THREE.Vector3();
 function pasoCentrar() {
-  controles.target.multiplyScalar(0.88); // vuelve el cartel al centro de la pantalla
+  desplazoX *= 0.88; desplazoY *= 0.88; // vuelve la pieza al centro de la pantalla
   esf.setFromVector3(vec.copy(camara.position).sub(controles.target));
   const dt = THREE.MathUtils.euclideanModulo(-esf.theta + Math.PI, 2 * Math.PI) - Math.PI;
   esf.radius += (DIST - esf.radius) * 0.12;
   esf.phi += (Math.PI / 2 - esf.phi) * 0.12;
   esf.theta += dt * 0.12;
   camara.position.setFromSpherical(esf).add(controles.target);
-  if (Math.abs(dt) < 0.002 && Math.abs(esf.radius - DIST) < 0.01 && Math.abs(esf.phi - Math.PI / 2) < 0.002 && controles.target.length() < 0.002) {
+  if (Math.abs(dt) < 0.002 && Math.abs(esf.radius - DIST) < 0.01 && Math.abs(esf.phi - Math.PI / 2) < 0.002 && Math.hypot(desplazoX, desplazoY) < 0.5) {
+    desplazoX = 0; desplazoY = 0;
     controles.target.set(0, 0, 0);
     camara.position.set(0, 0, DIST);
     centrando = false;
@@ -1040,6 +1080,7 @@ window.addEventListener("resize", () => {
   camara.aspect = window.innerWidth / window.innerHeight;
   camara.updateProjectionMatrix();
   renderizador.setSize(window.innerWidth, window.innerHeight);
+  vistaAplicada = ""; aplicarDesplazo();
 });
 
 actualizarInterfaz();
@@ -1061,10 +1102,7 @@ renderizador.setAnimationLoop(() => {
   grupoObra.rotation.y += (anguloObjetivo - grupoObra.rotation.y) * 0.08;
   if (centrando) pasoCentrar();
   controles.update();
-  if (controles.target.length() > 7) { // límite del movimiento: el cartel no se puede sacar de la pantalla
-    const ajuste = controles.target.clone().setLength(7).sub(controles.target);
-    controles.target.add(ajuste); camara.position.add(ajuste);
-  }
+  aplicarDesplazo();
   renderizador.render(escena, camara);
 });
 </script>
