@@ -432,18 +432,6 @@ const carteles = [
       { t: "l", pts: [[100, 470], [924, 470]] },
       { txt: "AMANECER", x: 512, y: 180, font: "60px Rye", al: "center" }
     ] },
-  { titulo: "El Cachafaz Tangoteatro",
-    texto: "Cartel de El Cachafaz Tangoteatro, con ornamentos dorados, letras rojas y blancas sobre un fondo oscuro.",
-    fondo: "#383739",
-    // Los cinco SVG comparten lienzo (una hoja A4) pero el diseño ocupa solo una franja: se recorta a [x, y, ancho, alto] para que llene el vidrio
-    recorte: [47.66, 214.79, 1113.19, 371.74],
-    // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
-    svg: ["orocar.svg", "letracar2.svg", "letrcar.svg", "selladocar.svg", "fondocar.svg"],
-    // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
-    orden: ["vidrio", "oro", "rojo", "letras", "sellado", "fondo"],
-    // Diseño de respaldo (se usa solo si los SVG no cargan)
-    formas: [{ t: "r", x: 100, y: 280, w: 824, h: 210, f: "#141e1d" }],
-    oro: [{ txt: "EL CACHAFAZ", x: 512, y: 410, font: "64px Rye", al: "center" }] },
   { titulo: "El Pobre Guido",
     texto: "Es una sanguchería chilena y picada tradicional que comenzó como un pequeño puesto callejero que vendía anticuchos y bebidas en la esquina de Franklin, convirtiéndose con los años en la primera sanguchería instalada en esa calle y un clásico de la gastronomía popular de Santiago.",
     fondo: "#17324d",
@@ -465,24 +453,20 @@ const carteles = [
       { t: "l", pts: [[100, 668], [924, 668]] },
       { txt: "METRÓPOLIS", x: 300, y: 175, font: "44px Rye", al: "center" }
     ] },
-  { titulo: "(contexto)", texto: "(contexto)", fondo: "#0f6b78",
-    formas: [
-      { t: "r", x: 100, y: 630, w: 824, h: 58, f: "#e6cf9a" },
-      { t: "p", pts: [[720, 668], [740, 560], [715, 480], [765, 560], [760, 668]], f: "#2e8b57" },
-      { t: "p", pts: [[320, 560], [375, 525], [375, 595]], f: "#eab92f" },
-      { t: "e", x: 250, y: 560, rx: 70, ry: 35, f: "#eab92f" },
-      { t: "p", pts: [[640, 380], [800, 290], [770, 380], [800, 470]], f: "#a3231d" },
-      { t: "p", pts: [[440, 290], [520, 210], [560, 300]], f: "#a3231d" },
-      { t: "e", x: 480, y: 380, rx: 190, ry: 100, f: "#e8742a" },
-      { t: "c", x: 400, y: 350, r: 22, f: "#efe9d7" },
-      { t: "c", x: 400, y: 350, r: 9, f: "#17324d", k: 1 },
-      { t: "c", x: 250, y: 260, r: 18, f: "#bfe3e6" }, { t: "c", x: 305, y: 195, r: 12, f: "#bfe3e6" }, { t: "c", x: 210, y: 330, r: 10, f: "#bfe3e6" }
-    ],
-    oro: [
-      ...Array.from({ length: 8 }, (_, i) => ({ t: "c", x: 440 + (i % 4) * 50 + (i > 3 ? 25 : 0), y: i > 3 ? 430 : 340, r: 38, a0: -1.1, a1: 1.1 })),
-      { t: "c", x: 400, y: 350, r: 34 },
-      { txt: "ACUARIO", x: 512, y: 170, font: "60px Rye", al: "center" }
-    ] }
+  { titulo: "El Cachafaz Tangoteatro",
+    texto: "Cartel de El Cachafaz Tangoteatro, con ornamentos dorados, letras rojas y blancas sobre un fondo oscuro.",
+    fondo: "#383739",
+    // Los cinco SVG comparten lienzo (una hoja A4) pero el diseño ocupa solo una franja: se recorta a [x, y, ancho, alto] para que llene el vidrio
+    recorte: [47.66, 214.79, 1113.19, 371.74],
+    // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
+    svg: ["orocar.svg", "letracar2.svg", "letrcar.svg", "selladocar.svg", "fondocar.svg"],
+    // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
+    orden: ["vidrio", "oro", "rojo", "letras", "fondo"],
+    // El sellado y el fondo entran juntos en la última etapa, pero siguen siendo planos distintos al separar las capas 3D
+    etapas: [[0], [1], [2], [3], [4, 5]],
+    // Diseño de respaldo (se usa solo si los SVG no cargan)
+    formas: [{ t: "r", x: 100, y: 280, w: 824, h: 210, f: "#141e1d" }],
+    oro: [{ txt: "EL CACHAFAZ", x: 512, y: 410, font: "64px Rye", al: "center" }] }
 ];
 
 function trazo(ctx, s) {
@@ -890,10 +874,6 @@ const SECCIONES = {
   letras: {
     def: { nombre: "Las letras blancas", descripcion: "El blanco completa las letras por detrás del rojo y las hace destacar sobre el fondo oscuro." },
     info: { nombre: "Letras blancas", parrafos: ["El blanco completa las letras por detrás del rojo. Su tono claro las hace resaltar sobre la capa oscura que las rodea."] }
-  },
-  sellado: {
-    def: { nombre: "El sellado", descripcion: "Una capa oscura cubre el interior del cartel y deja resaltar el dorado y las letras." },
-    info: { nombre: "Sellado", parrafos: ["El sellado es la capa oscura que rodea las letras y los ornamentos. Se aplica por detrás de ellos y les da contraste."] }
   }
 };
 // Reparte los planos según las capas del cartel elegido (juntos y separados, siempre centrados)
