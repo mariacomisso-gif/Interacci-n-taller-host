@@ -342,17 +342,15 @@ const crearVidrio = (w = ancho, h = alto, caja = null) => crearTextura(ctx => {
   // caja = {x, y, w, h}: zona donde se dibuja el vidrio (por defecto, todo el lienzo)
   const x0 = caja ? caja.x : 0, y0 = caja ? caja.y : 0, cw = caja ? caja.w : w, ch = caja ? caja.h : h;
   const k = cw / ancho;
-  // con caja (el tamaño del fondo) el borde del vidrio queda pegado al borde del fondo; sin caja, el margen de siempre
-  const a = caja ? Math.min(cw, ch) * 0.02 : 30 * k, b = a + (caja ? Math.min(cw, ch) * 0.02 : 14 * k);
   ctx.translate(x0, y0);
   ctx.strokeStyle = "rgba(205,225,218,0.75)"; ctx.lineWidth = 6 * k;
-  ctx.strokeRect(a, a, cw - 2 * a, ch - 2 * a);
+  ctx.strokeRect(30 * k, 30 * k, cw - 60 * k, ch - 60 * k);
   ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 2 * k;
-  ctx.strokeRect(b, b, cw - 2 * b, ch - 2 * b);
+  ctx.strokeRect(44 * k, 44 * k, cw - 88 * k, ch - 88 * k);
   const g = ctx.createLinearGradient(0, 0, cw, ch);
   g.addColorStop(0, "rgba(255,255,255,0.08)"); g.addColorStop(0.4, "rgba(255,255,255,0)");
   g.addColorStop(0.7, "rgba(255,255,255,0.04)"); g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g; ctx.fillRect(a, a, cw - 2 * a, ch - 2 * a);
+  ctx.fillStyle = g; ctx.fillRect(30 * k, 30 * k, cw - 60 * k, ch - 60 * k);
 }, w, h);
 const vidrio = crearVidrio();
 
@@ -410,13 +408,15 @@ const carteles = [
     texto: "Antigüedades Rafael Cornejo es un conocido local dedicado a la compraventa de artículos usados y antigüedades, ubicado en Caupolicán 502, Providencia.",
     fondo: "#f2c98a",
     relleno: "#2f6b45", // color con que se extiende el verde si el centro del SVG es transparente
+    vidrioForma: true, // el vidrio toma la forma (caja visible) del fondo
+    vidrioEscala: 1.12, // tamaño extra solo del vidrio (1 = igual que las demás capas; sube o baja el número para ajustarlo)
     // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
-    svg: ["oro2.svg", "blancos2.svg", "contorno2.svg", "rojo.svg", "verdes.svg", "fondo2.svg"], // las letras negras (contorno2) van después de los blancos y antes de la pintura
+    svg: ["oro2.svg", "blancos2.svg", "rojo.svg", "contorno2.svg", "verdes.svg", "fondo2.svg"],
     solido: ["oro2.svg"], // el oro se muestra 100% opaco (se quitan opacidades y mezclas del SVG)
     // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
-    orden: ["vidrio", "oro", "blancos", "contornos", "pintura", "fondo"],
-    // Capas (por posición en "svg", con el vidrio = 0) que aparecen en cada etapa: rojo (4) y verdes (5) entran juntos en la pintura, pero siguen siendo planos distintos al separar las capas 3D
-    etapas: [[0], [1], [2], [3], [4, 5], [6]],
+    orden: ["vidrio", "oro", "blancos", "pintura", "contornos", "fondo"],
+    // Capas (por posición en "svg", con el vidrio = 0) que aparecen en cada etapa: rojo (3) y verdes (5) entran juntos en la pintura, pero siguen siendo planos distintos al separar las capas 3D
+    etapas: [[0], [1], [2], [3, 5], [4], [6]],
     // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [
       { t: "c", x: 512, y: 470, r: 150, a0: P, a1: 2 * P, f: "#d9472b" },
@@ -454,14 +454,14 @@ const carteles = [
       { txt: "METRÓPOLIS", x: 300, y: 175, font: "44px Rye", al: "center" }
     ] },
   { titulo: "El Cachafaz Tangoteatro",
-    texto: "Teatro El Cachafaz es un icónico espacio cultural independiente fundado en 1997 en el Barrio Italia (Ñuñoa, Chile), fuertemente vinculado al humor, el stand-up comedy y la trayectoria del comediante Jorge Alís.",
+    texto: "Cartel de El Cachafaz Tangoteatro, con ornamentos dorados, letras rojas y blancas sobre un fondo oscuro.",
     fondo: "#383739",
     // Los cinco SVG comparten lienzo (una hoja A4) pero el diseño ocupa solo una franja: se recorta a [x, y, ancho, alto] para que llene el vidrio
     recorte: [47.66, 214.79, 1113.19, 371.74],
     // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
     svg: ["orocar.svg", "letracar2.svg", "letrcar.svg", "selladocar.svg", "fondocar.svg"],
     // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
-    orden: ["vidrio", "oro", "pintura", "blancos", "fondo"], // el rojo usa la sección "pintura" y el blanco la sección "blancos"
+    orden: ["vidrio", "oro", "rojo", "letras", "fondo"],
     // El sellado y el fondo entran juntos en la última etapa, pero siguen siendo planos distintos al separar las capas 3D
     etapas: [[0], [1], [2], [3], [4, 5]],
     // Diseño de respaldo (se usa solo si los SVG no cargan)
@@ -561,14 +561,6 @@ async function cargarImagen(src, limpiar, recorte) {
     img.src = url;
   });
 }
-// Zona visible (rectángulo que contiene todo lo que no es transparente) de un lienzo
-function cajaVisible(cv) {
-  const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
-  let x0 = cv.width, y0 = cv.height, x1 = -1, y1 = -1;
-  for (let y = 0; y < cv.height; y += 2) for (let x = 0; x < cv.width; x += 2)
-    if (px[(y * cv.width + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-  return x1 > x0 && y1 > y0 ? { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 } : null;
-}
 async function cargarSvgs(c) {
   try {
     // Si un archivo falla, esa capa queda vacía (con aviso) y el resto del cartel se muestra igual
@@ -660,9 +652,7 @@ async function cargarSvgs(c) {
       if (!hay) avisar(`${c.titulo}: ${c.svg[i]} se abrió pero se ve vacío (todo transparente). Revisa que el archivo tenga formas visibles.`);
     });
     tx.forEach(t => t.image.getContext("2d").getImageData(0, 0, 1, 1)); // falla si el navegador bloquea algún lienzo
-    // El vidrio de cada cartel mide lo mismo que su propio fondo ya terminado (la zona visible de la última capa)
-    const cajaVidrio = cajaVisible(tx[tx.length - 1].image) || cajaFondo;
-    c.tx = [crearVidrio(w, h, cajaVidrio), ...tx];
+    c.tx = [crearVidrio(w, h, cajaFondo), ...tx];
   } catch (e) {
     console.warn(c.titulo + ": se usa el diseño de respaldo.", e);
     c.svg = null;
@@ -875,7 +865,16 @@ const SECCIONES = {
   },
   contornos: { def: definiciones[2], info: infoCapas[2], video: 'contorno.mp4' },
   pintura: { def: definiciones[3], info: infoCapas[3] },
-  fondo: { def: definiciones[4], info: infoCapas[4], video: 'fondo.mp4' }
+  fondo: { def: definiciones[4], info: infoCapas[4], video: 'fondo.mp4' },
+  // Secciones del cartel de El Cachafaz (el rojo va por delante del blanco, por eso se aplica antes)
+  rojo: {
+    def: { nombre: "Las letras rojas", descripcion: "El rojo cubre la parte superior de las letras. Queda por delante del blanco, por eso se aplica antes que él." },
+    info: { nombre: "Letras rojas", parrafos: ["El rojo se aplica por el reverso del vidrio sobre la parte superior de las letras. Al mirar la obra desde el frente queda por delante del blanco, por eso se pinta antes que él."] }
+  },
+  letras: {
+    def: { nombre: "Las letras blancas", descripcion: "El blanco completa las letras por detrás del rojo y las hace destacar sobre el fondo oscuro." },
+    info: { nombre: "Letras blancas", parrafos: ["El blanco completa las letras por detrás del rojo. Su tono claro las hace resaltar sobre la capa oscura que las rodea."] }
+  }
 };
 // Reparte los planos según las capas del cartel elegido (juntos y separados, siempre centrados)
 function ubicarCapas(n) {
@@ -1098,9 +1097,11 @@ window.addEventListener("resize", () => {
 actualizarInterfaz();
 
 renderizador.setAnimationLoop(() => {
-  // La textura de cristal siempre se mantiene visible (también con la obra completa y acoplada)
-  capas[0].material.opacity = 1;
-  capas[0].visible = true;
+  // Con la obra completa y acoplada, el vidrio se desvanece para que solo se vea la ilustración
+  const matVidrio = capas[0].material;
+  const ocultarVidrio = paso === defs.length - 1 && !capasSeparadas;
+  matVidrio.opacity += ((ocultarVidrio ? 0 : 1) - matVidrio.opacity) * 0.08;
+  capas[0].visible = matVidrio.opacity > 0.01;
   capas.forEach(capa => {
     const objetivoZ = capasSeparadas ? capa.userData.zSeparada : capa.userData.zJunta;
     capa.position.z += (objetivoZ - capa.position.z) * 0.08;
