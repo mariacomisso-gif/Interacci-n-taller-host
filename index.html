@@ -652,7 +652,7 @@ async function cargarSvgs(c) {
       if (!hay) avisar(`${c.titulo}: ${c.svg[i]} se abrió pero se ve vacío (todo transparente). Revisa que el archivo tenga formas visibles.`);
     });
     tx.forEach(t => t.image.getContext("2d").getImageData(0, 0, 1, 1)); // falla si el navegador bloquea algún lienzo
-    c.tx = [crearVidrio(w, h, cajaFondo), ...tx];
+    c.tx = [crearVidrio(w, h, c.vidrioForma ? cajaFondo : null), ...tx];
   } catch (e) {
     console.warn(c.titulo + ": se usa el diseño de respaldo.", e);
     c.svg = null;
