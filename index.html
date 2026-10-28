@@ -185,6 +185,11 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
 .placa{padding:0;background:none;border:0;box-shadow:none}
 #contador{color:var(--azul);text-shadow:none}
 #tituloCapa{color:var(--rojo);text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro)}
+/* El cartel ya no se levanta ni se inclina al tocarlo o pasar el mouse (solo aparece su información) */
+.cartel,.cartel:hover,.cartel:focus-visible,.cartel.activo{transform:none;box-shadow:0 0 0 2px var(--oro-osc),8px 8px 0 rgba(0,0,0,.55)}
+/* Panel "Incorporar siguiente capa" más abajo */
+@media(min-width:601px){.panel{top:92px;max-height:calc(100dvh - 92px - 84px)}}
+@media(max-width:600px){.panel{bottom:106px}}
 </style>
 </head>
 <body>
