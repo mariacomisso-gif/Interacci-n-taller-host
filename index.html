@@ -389,6 +389,10 @@ const vidrio = crearVidrio();
    Cada vez que se entra a un cartel (o se vuelve a comenzar) se sortea uno de esta lista.
    Para agregar o quitar videos, edita solo esta línea (deben estar en la misma carpeta que el html). */
 const VIDEOS_ORO = ["oro.mp4", "orootro.mp4", "orootro2.mp4"];
+/* Igual para la etapa del fondo: se sortea entre estos videos (en la misma carpeta que el html). */
+const VIDEOS_FONDO = ["fondo.mp4", "fondootro.mp4", "fondootro2.mp4"];
+/* Y para la etapa de los contornos. */
+const VIDEOS_CONTORNO = ["contorno.mp4", "contornootro.mp4"];
 
 /* ---------- DISEÑOS DE LOS CARTELES ----------
    formas: se pintan (f) y se contornean (k:1 = sin contorno). oro: trazos y rotulación dorada.
@@ -424,7 +428,7 @@ const carteles = [
       { nombre: "Blancos", parrafos: ["El blanco cubre el interior de las letras y sirve de base luminosa para los detalles. Al mirar la obra desde el frente queda por delante de la pintura, por eso se aplica antes que ella."] },
       null, // la pintura usa el texto común (infoCapas[3])
       null],
-    videos: { 1: VIDEOS_ORO, 3: 'pintura.mp4', 4: 'fondo.mp4' }, // el video de contorno ya no aplica a este cartel; el del oro se sortea
+    videos: { 1: VIDEOS_ORO, 3: 'pintura.mp4', 4: VIDEOS_FONDO }, // el video de contorno ya no aplica a este cartel; el del oro se sortea
     // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [
       { t: "c", x: 680, y: 280, r: 100, f: "#e8cf84" },
@@ -915,7 +919,7 @@ const infoCapas = [
 ];
 // Videos sin sonido, en la misma carpeta que el html. Capas: 0 vidrio, 1 oro, 2 contornos, 3 pinturas, 4 fondo
 // Un valor puede ser un video o una lista de videos (se sortea uno)
-const videosCapa = { 1: VIDEOS_ORO, 2: 'contorno.mp4', 3: 'pintura.mp4', 4: 'fondo.mp4' };
+const videosCapa = { 1: VIDEOS_ORO, 2: VIDEOS_CONTORNO, 3: 'pintura.mp4', 4: VIDEOS_FONDO };
 
 // Secciones reutilizables: un cartel con "orden" arma sus pasos a partir de estas secciones
 const SECCIONES = {
@@ -923,11 +927,12 @@ const SECCIONES = {
   oro: { def: definiciones[1], info: infoCapas[1], video: VIDEOS_ORO },
   blancos: {
     def: { nombre: "Los blancos", descripcion: "El blanco rellena zonas del diseño y sirve de base luminosa. Queda por delante de la pintura, por eso se aplica antes que ella." },
-    info: { nombre: "Blancos", parrafos: ["El blanco cubre las zonas que necesitan una base luminosa para los detalles. Al mirar la obra desde el frente queda por delante de la pintura, por eso se aplica antes que ella."] }
+    info: { nombre: "Blancos", parrafos: ["El blanco cubre las zonas que necesitan una base luminosa para los detalles. Al mirar la obra desde el frente queda por delante de la pintura, por eso se aplica antes que ella."] },
+    video: 'blancos.mp4'
   },
-  contornos: { def: definiciones[2], info: infoCapas[2], video: 'contorno.mp4' },
+  contornos: { def: definiciones[2], info: infoCapas[2], video: VIDEOS_CONTORNO },
   pintura: { def: definiciones[3], info: infoCapas[3], video: 'pintura.mp4' },
-  fondo: { def: definiciones[4], info: infoCapas[4], video: 'fondo.mp4' },
+  fondo: { def: definiciones[4], info: infoCapas[4], video: VIDEOS_FONDO },
   // Secciones del cartel de El Cachafaz (el rojo va por delante del blanco, por eso se aplica antes)
   rojo: {
     def: { nombre: "La pintura", descripcion: "La pintura roja cubre la parte superior de las letras. Queda por delante del blanco, por eso se aplica antes que él." },
@@ -936,7 +941,8 @@ const SECCIONES = {
   // Pertenece a los blancos: el blanco completa las letras por detrás del rojo
   letras: {
     def: { nombre: "Los blancos", descripcion: "El blanco completa las letras por detrás del rojo y las hace destacar sobre el fondo oscuro." },
-    info: { nombre: "Blancos", parrafos: ["El blanco completa las letras por detrás del rojo. Su tono claro las hace resaltar sobre la capa oscura que las rodea."] }
+    info: { nombre: "Blancos", parrafos: ["El blanco completa las letras por detrás del rojo. Su tono claro las hace resaltar sobre la capa oscura que las rodea."] },
+    video: 'blancos.mp4' // son los blancos del cartel: mismo video
   },
   // Sección del cartel de El Bar de Julio: los detalles pertenecen a la pintura
   detalles: {
@@ -1033,7 +1039,7 @@ function reiniciar() {
   capas.forEach(capa => { capa.position.z = capa.userData.zJunta; });
   mostrarCapas();
   botonSeparar.textContent = "Separar capas 3D";
-  sortearVideos(); // cada vez que se empieza la obra se sortea de nuevo el video del oro
+  sortearVideos(); // cada vez que se empieza la obra se sortea de nuevo el video del oro y del fondo
   actualizarInterfaz();
   fijarInfo(true); // al iniciar la primera capa, "¿Qué pasa en esta capa?" aparece desplegada
   camara.position.set(0, 0, DIST);
