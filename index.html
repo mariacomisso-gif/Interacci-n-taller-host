@@ -96,6 +96,7 @@ text-shadow:1px 1px 0 var(--oro-claro),2px 2px 0 var(--oro),3px 3px 0 var(--oro)
 /* ---------- VIÑETA DERECHA (se expande al tocar) ---------- */
 .panel-der{position:absolute;z-index:2;top:24px;right:24px;width:176px;padding:8px;background:linear-gradient(135deg,var(--oro-claro),var(--oro) 38%,var(--oro-osc) 52%,var(--oro-claro) 78%,var(--oro));box-shadow:0 22px 45px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.35);transition:width .35s cubic-bezier(.3,.9,.3,1)}
 #panel[hidden]+.panel-der{display:none}
+.panel-der.sin-video,#infoTitulo,#infoTexto{display:none}
 .panel-der.abierto{width:clamp(260px,calc(100vw - 468px),372px)}
 .panel-der .tab{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;font-family:"Alfa Slab One",serif;font-size:13px;letter-spacing:.6px;text-transform:uppercase;color:var(--crema);background:var(--azul);border:3px solid var(--azul-osc);box-shadow:3px 3px 0 var(--azul-osc);text-shadow:1px 1px 0 var(--azul-osc);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .panel-der .tab:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--azul-osc)}
@@ -922,6 +923,8 @@ const infoVideo = document.createElement('video');
 infoVideo.className = 'vid';
 infoVideo.muted = true; infoVideo.defaultMuted = true; infoVideo.loop = true; infoVideo.playsInline = true;
 infoVideo.preload = 'auto'; infoVideo.hidden = true;
+infoVideo.controls = true; // barra con pausa/reproducir y línea de tiempo para retroceder o avanzar
+infoVideo.setAttribute('controlslist', 'nodownload noremoteplayback');
 infoVideo.setAttribute('muted', ''); infoVideo.setAttribute('playsinline', '');
 infoDer.querySelector('.texto').after(infoVideo);
 // Si el archivo no está junto al html, el video se oculta en vez de mostrar un recuadro roto
@@ -929,16 +932,14 @@ infoVideo.addEventListener('error', () => {
   infoVideo.dataset.falla = infoVideo.getAttribute('src');
   infoVideo.hidden = true;
   infoDer.classList.remove('con-video');
+  infoDer.classList.add('sin-video');
 });
 function reproducirVideo(abierta) {
   if (abierta && !infoVideo.hidden) infoVideo.play().catch(() => {});
   else infoVideo.pause();
 }
 function pintarInfo() {
-  const d = infos[paso];
-  infoTitulo.textContent = d.nombre;
-  infoTexto.replaceChildren(...d.parrafos.map(t => { const p = document.createElement('p'); p.textContent = t; return p; }));
-  infoDer.querySelector('.texto').scrollTop = 0;
+  // Se quitaron los textos de "¿Qué pasa en esta capa?": la viñeta solo muestra el video (y se oculta si la capa no tiene)
   const v = vids[paso];
   if (v && infoVideo.dataset.falla !== v) {
     if (infoVideo.getAttribute('src') !== v) infoVideo.src = v;
@@ -948,6 +949,7 @@ function pintarInfo() {
     infoVideo.hidden = true;
     infoDer.classList.remove('con-video');
   }
+  infoDer.classList.toggle('sin-video', infoVideo.hidden);
   reproducirVideo(infoDer.classList.contains('abierto'));
 }
 function fijarInfo(abierta) {
