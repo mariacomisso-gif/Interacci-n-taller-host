@@ -513,7 +513,19 @@ const carteles = [
     orden: ["vidrio", "detalles", "oro", "blancos", "pintura", "fondo"],
     // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [],
-    oro: [{ txt: "EL BAR DE JULIO", x: 512, y: 410, font: "64px Rye", al: "center" }] }
+    oro: [{ txt: "EL BAR DE JULIO", x: 512, y: 410, font: "64px Rye", al: "center" }] },
+  { titulo: "Asociación de Filetadores",
+    texto: "Asociación dedicada a la salvaguarda, preservación y difusión del filete porteño, arte popular argentino, patrimonio cultural de la ciudad de Buenos Aires y Patrimonio Cultural Inmaterial de la Humanidad por UNESCO. El fileteado porteño es una técnica pictórica y un arte decorativo tradicional.",
+    fondo: "#1c2a24",
+    texturas: 1.2, // las capas con textura (marco dorado y sombras) se exportaron al 83 %: se agrandan x1.2 para calzar con las vectoriales
+    // SVG de adelante hacia atrás (después del vidrio). Deben estar en la misma carpeta que el html
+    svg: ["oro7.svg", "pintura71.svg", "pintura72.svg", "blancos7.svg", "pintura73.svg", "pintura74.svg", "oro71.svg", "fondo7.svg"],
+    // Sección de cada capa (incluye el vidrio al inicio): define los textos y videos de cada paso
+    // Cada capa es una etapa propia. Si los SVG vienen en una hoja con el diseño en una zona, agrega: recorte: [x, y, ancho, alto],
+    orden: ["vidrio", "oro", "pintura", "pintura", "blancos", "pintura", "pintura", "oroatras", "fondo"],
+    // Diseño de respaldo (se usa solo si los SVG no cargan)
+    formas: [],
+    oro: [{ txt: "FILETEADO PORTEÑO", x: 512, y: 410, font: "56px Rye", al: "center" }] }
 ];
 
 function trazo(ctx, s) {
@@ -561,7 +573,7 @@ async function buscarArchivo(src) {
   }
   throw new Error("no se encontró. Probé: " + intentos.join(" | "));
 }
-async function cargarImagen(src, limpiar, recorte) {
+async function cargarImagen(src, limpiar, recorte, texturas) {
   let url = src, vbTxt = "", detalle = "";
   // PNG, JPG, WebP: se cargan directo, sin el ajuste de tamaño que solo aplica a los SVG
   if (!/\.svg(\?|#|$)/i.test(src)) {
@@ -585,6 +597,8 @@ async function cargarImagen(src, limpiar, recorte) {
       .replace(/\s(?:fill-|stroke-)?opacity="[^"]*"/g, "")
       .replace(/(?<![-\w])(?:fill-|stroke-)?opacity\s*:\s*[\d.]+%?\s*;?/g, "")
       .replace(/mix-blend-mode\s*:\s*[\w-]+\s*;?/g, "");
+    // texturas: las imágenes incrustadas (oro, sombras con textura) que Illustrator guardó al 83 % (scale .2 en vez de .24) se agrandan con este factor, manteniendo su esquina superior izquierda
+    if (texturas) txt = txt.replace(/<image\b[^>]*>/g, tag => tag.replace(/scale\(\s*([\d.]+)\s*\)/, (m, v) => Math.abs(parseFloat(v) - 0.2) < 0.001 ? `scale(${(parseFloat(v) * texturas).toFixed(4)})` : m));
     const svg = new DOMParser().parseFromString(txt, "image/svg+xml").documentElement;
     if (svg.nodeName.toLowerCase() === "svg") {
       if (recorte) { // recorta el lienzo a una zona [x, y, ancho, alto] (en unidades del SVG): para diseños que ocupan solo una parte de la hoja
@@ -611,7 +625,7 @@ async function cargarImagen(src, limpiar, recorte) {
 async function cargarSvgs(c) {
   try {
     // Si un archivo falla, esa capa queda vacía (con aviso) y el resto del cartel se muestra igual
-    const imgs = await Promise.all(c.svg.map(s => cargarImagen(s, c.solido?.includes(s), c.recorte).catch(e => { avisar(c.titulo + ": " + e.message); return null; })));
+    const imgs = await Promise.all(c.svg.map(s => cargarImagen(s, c.solido?.includes(s), c.recorte, c.texturas).catch(e => { avisar(c.titulo + ": " + e.message); return null; })));
     const cargadas = imgs.filter(Boolean);
     if (!cargadas.length) throw new Error("no se pudo abrir ninguno de sus archivos");
     const ref = imgs[imgs.length - 1] || cargadas[cargadas.length - 1];
@@ -836,8 +850,8 @@ const definiciones = [
   { nombre: "Color de fondo", descripcion: "Capa final de sellado que cierra y hace contrastar la obra." }
 ];
 
-// Se crean 7 planos: es el máximo de capas que usa un cartel (cada cartel usa solo las que necesita)
-const MAX_CAPAS = 7;
+// Se crean 9 planos: es el máximo de capas que usa un cartel (cada cartel usa solo las que necesita)
+const MAX_CAPAS = 9;
 const capas = [];
 Array.from({ length: MAX_CAPAS }, (_, i) => i).forEach(i => {
   const material = new THREE.MeshBasicMaterial({
@@ -928,6 +942,11 @@ const SECCIONES = {
   detalles: {
     def: { nombre: "La pintura", descripcion: "Los detalles en pintura se aplican primero. Al mirar la obra desde el frente quedan por delante del oro." },
     info: infoCapas[3], video: 'pintura.mp4' // mismo texto y video que toda la pintura
+  },
+  // Segundo oro del cartel de la Asociación de Filetadores: va detrás de la pintura, justo antes del fondo
+  oroatras: {
+    def: { nombre: "El dorado", descripcion: "Un segundo dorado queda por detrás de la pintura. Al mirar desde el frente, la pintura se apoya sobre él y el oro asoma en los espacios que ella deja libres." },
+    info: infoCapas[1], video: VIDEOS_ORO // mismo texto y video que el oro
   }
 };
 // Reparte los planos según las capas del cartel elegido (juntos y separados, siempre centrados)
