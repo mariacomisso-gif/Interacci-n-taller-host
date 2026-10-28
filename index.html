@@ -355,6 +355,11 @@ const crearVidrio = (w = ancho, h = alto, caja = null) => crearTextura(ctx => {
 }, w, h);
 const vidrio = crearVidrio();
 
+/* ---------- VIDEOS DE LA CAPA DE ORO ----------
+   Cada vez que se entra a un cartel (o se vuelve a comenzar) se sortea uno de esta lista.
+   Para agregar o quitar videos, edita solo esta línea (deben estar en la misma carpeta que el html). */
+const VIDEOS_ORO = ["oro.mp4", "orootro.mp4", "orootro2.mp4"];
+
 /* ---------- DISEÑOS DE LOS CARTELES ----------
    formas: se pintan (f) y se contornean (k:1 = sin contorno). oro: trazos y rotulación dorada.
    Tipos: c círculo/arco, e elipse, r rectángulo, p polígono, l línea, b curva bezier. */
@@ -389,7 +394,7 @@ const carteles = [
       { nombre: "Blancos", parrafos: ["El blanco cubre el interior de las letras y sirve de base luminosa para los detalles. Al mirar la obra desde el frente queda por delante de la pintura, por eso se aplica antes que ella."] },
       null, // la pintura usa el texto común (infoCapas[3])
       null],
-    videos: { 1: 'oro.mp4', 3: 'pintura.mp4', 4: 'fondo.mp4' }, // el video de contorno ya no aplica a este cartel
+    videos: { 1: VIDEOS_ORO, 3: 'pintura.mp4', 4: 'fondo.mp4' }, // el video de contorno ya no aplica a este cartel; el del oro se sortea
     // Diseño de respaldo (se usa solo si los SVG no cargan)
     formas: [
       { t: "c", x: 680, y: 280, r: 100, f: "#e8cf84" },
@@ -865,12 +870,13 @@ const infoCapas = [
   ] }
 ];
 // Videos sin sonido, en la misma carpeta que el html. Capas: 0 vidrio, 1 oro, 2 contornos, 3 pinturas, 4 fondo
-const videosCapa = { 1: 'oro.mp4', 2: 'contorno.mp4', 3: 'pintura.mp4', 4: 'fondo.mp4' };
+// Un valor puede ser un video o una lista de videos (se sortea uno)
+const videosCapa = { 1: VIDEOS_ORO, 2: 'contorno.mp4', 3: 'pintura.mp4', 4: 'fondo.mp4' };
 
 // Secciones reutilizables: un cartel con "orden" arma sus pasos a partir de estas secciones
 const SECCIONES = {
   vidrio: { def: definiciones[0], info: infoCapas[0] },
-  oro: { def: definiciones[1], info: infoCapas[1], video: 'oro.mp4' },
+  oro: { def: definiciones[1], info: infoCapas[1], video: VIDEOS_ORO },
   blancos: {
     def: { nombre: "Los blancos", descripcion: "El blanco rellena zonas del diseño y sirve de base luminosa. Queda por delante de la pintura, por eso se aplica antes que ella." },
     info: { nombre: "Blancos", parrafos: ["El blanco cubre las zonas que necesitan una base luminosa para los detalles. Al mirar la obra desde el frente queda por delante de la pintura, por eso se aplica antes que ella."] }
@@ -905,7 +911,13 @@ function ubicarCapas(n) {
 }
 
 // Textos y videos activos (cada cartel puede reemplazar los suyos)
-let defs = definiciones, infos = infoCapas, vids = videosCapa;
+// vidsBase guarda lo definido por el cartel (un paso puede tener una lista de videos); vids es lo ya sorteado
+let defs = definiciones, infos = infoCapas, vidsBase = videosCapa, vids = {};
+function sortearVideos() {
+  vids = {};
+  for (const [k, v] of Object.entries(vidsBase)) vids[k] = Array.isArray(v) ? v[Math.floor(Math.random() * v.length)] : v;
+}
+sortearVideos();
 const infoVideo = document.createElement('video');
 infoVideo.className = 'vid';
 infoVideo.muted = true; infoVideo.defaultMuted = true; infoVideo.loop = true; infoVideo.playsInline = true;
@@ -971,6 +983,7 @@ function reiniciar() {
   capas.forEach(capa => { capa.position.z = capa.userData.zJunta; });
   mostrarCapas();
   botonSeparar.textContent = "Separar capas 3D";
+  sortearVideos(); // cada vez que se empieza la obra se sortea de nuevo el video del oro
   actualizarInterfaz();
   fijarInfo(true); // al iniciar la primera capa, "¿Qué pasa en esta capa?" aparece desplegada
   camara.position.set(0, 0, DIST);
@@ -986,15 +999,15 @@ function elegir(i) {
   if (c.orden && c.svg) {
     defs = c.orden.map(k => SECCIONES[k].def);
     infos = c.orden.map(k => SECCIONES[k].info);
-    vids = {};
+    vidsBase = {};
     c.orden.forEach((k, j) => {
       const v = c.videosSeccion?.[k] ?? SECCIONES[k].video; // un cartel puede tener su propio video para una sección
-      if (v) vids[j] = v;
+      if (v) vidsBase[j] = v;
     });
   } else {
     defs = definiciones.map((d, k) => c.definiciones?.[k] ?? d);
     infos = infoCapas.map((d, k) => c.info?.[k] ?? d);
-    vids = c.videos ?? videosCapa;
+    vidsBase = c.videos ?? videosCapa;
   }
   const n = c.tx.length;
   ubicarCapas(n);
